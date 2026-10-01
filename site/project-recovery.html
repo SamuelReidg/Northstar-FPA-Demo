@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Projects · Recovery Builder — Northstar Heritage</title>
+<style>
+:root{
+  --sans:Inter,"Helvetica Neue",Helvetica,Arial,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --bg:#e7eee9; --paper:#eef2ec; --panel:#f5f8f4; --panel2:#e9eee9; --border:#d8e0d9; --border-strong:#c5d0c6;
+  --text:#24342f; --ink:#24342f; --muted:#6f7d76; --dim:#8a948d;
+  --crit:#c46f4f; --crit2:#9c6a52; --warn:#c99a35; --warn2:#a08f63; --watch:#d9c58f; --ok:#6f8790; --ok2:#5d7a6b;
+  --blue:#536f62; --blue-deep:#314a42; --blue2:#314a42; --blue-soft:#e0e8e2; --navy:#314a42; --clay:#b88368;
+  --accent:#536f62; --accent2:#314a42;
+  --shadow:0 1px 2px rgba(42,60,53,.05),0 10px 28px rgba(42,60,53,.07);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;height:100%;}
+body{color:var(--text); font-family:var(--sans); font-size:13px; letter-spacing:.1px; -webkit-font-smoothing:antialiased; background:radial-gradient(circle at 20% 0%, rgba(255,255,255,.85), transparent 32%),linear-gradient(135deg,#f7f8f4 0%,#e5ede7 45%,#d7e1da 100%); background-attachment:fixed;}
+.app{display:flex; height:100vh; overflow:hidden;}
+/* sidebar */
+.sidebar{width:300px; flex-shrink:0; position:relative; overflow:hidden; margin:6px 0 6px 8px; height:calc(100vh - 12px); border-radius:22px; background:radial-gradient(circle at 50% 30%, rgba(255,255,255,.30), transparent 60%),linear-gradient(180deg,#e8ede7 0%,#dfe6df 52%,#d6ddd5 100%); border:1px solid rgba(255,255,255,.85); box-shadow:inset 0 1px 0 rgba(255,255,255,.95), inset 0 -1px 0 rgba(110,125,116,.10), 0 20px 60px rgba(60,75,68,.14), 0 40px 100px rgba(60,75,68,.10); display:flex; flex-direction:column;}
+.sidebar::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.03;background:radial-gradient(circle at 22% 16%, rgba(255,255,255,.9), transparent 30%),radial-gradient(circle at 72% 40%, rgba(90,105,96,.5), transparent 32%),radial-gradient(circle at 38% 80%, rgba(255,255,255,.7), transparent 34%);mix-blend-mode:multiply;}
+.sidebar>*{position:relative;}
+.logo{padding:22px 20px 16px; display:flex; align-items:center; gap:12px; border-bottom:1px solid rgba(120,135,124,.18);}
+.logo .mark{width:36px; height:40px;}
+.logo .mark path{stroke:#53685f;}
+.logo .mark circle{fill:#53685f;}
+.logo .bt{font-weight:700; letter-spacing:.18em; font-size:14px; line-height:1; color:#23272e;}
+.logo .bs{font-size:8.5px; letter-spacing:.14em; color:#536f62; margin-top:5px; text-transform:uppercase; font-weight:600;}
+.nav{flex:0 0 auto; padding:10px 12px;}
+.nav a{display:flex; align-items:center; gap:12px; padding:10px 13px; margin:3px 0; color:#28342f; text-decoration:none; font-size:13px; border-radius:11px; font-weight:600; letter-spacing:.2px; border:1px solid transparent; transition:background .15s,color .15s;}
+.nav a svg{width:17px; height:17px; flex-shrink:0; stroke:#53685f;}
+.nav a:hover{background:rgba(255,255,255,.32); color:#28342f;}
+.nav a.active{background:linear-gradient(180deg, rgba(255,255,255,.92), rgba(245,247,244,.82)); border:1px solid rgba(255,255,255,.95); color:#28342f; box-shadow:0 12px 24px rgba(45,58,51,.08), 0 3px 8px rgba(45,58,51,.04), inset 0 1px 0 rgba(255,255,255,.95);}
+.nav a.active svg{stroke:#53685f;}
+.side-foot{padding:16px 20px; border-top:1px solid var(--border); font-size:12px; color:var(--dim);}
+.side-foot .tag{color:var(--blue-deep); line-height:1.5;}
+.side-foot a.home{display:block; margin-top:12px; color:var(--muted); text-decoration:none; font-size:11.5px;}
+.side-foot a.home:hover{color:var(--ink);}
+/* main */
+.main{flex:1; min-width:0; display:flex; height:100vh;}
+.plist{flex:1; min-height:0; border-top:1px solid var(--border); display:flex; flex-direction:column;}
+.plist-head{padding:14px 16px 11px; border-bottom:1px solid var(--border);}
+.plist-head h2{font-size:13px; letter-spacing:.6px; text-transform:uppercase; margin:0 0 12px; color:var(--ink); font-weight:600;}
+.searchrow{display:flex; gap:8px;}
+.searchrow input{flex:1; background:var(--panel2); border:1px solid var(--border); border-radius:8px; padding:8px 11px; color:var(--text); font-size:13px;}
+.searchrow input::placeholder{color:var(--dim);}
+.pmosel{width:100%; margin-top:8px; background:var(--panel2); border:1px solid var(--border); border-radius:8px; padding:8px 10px; color:var(--text); font-size:13px; cursor:pointer;}
+.combo{position:relative; width:100%; margin-top:8px;}
+.filter-row{display:flex; gap:8px;}
+.filter-row .combo{flex:1 1 0; min-width:0;}
+.filter-row .combo:last-child{flex:1.6 1 0;}
+.combo-btn{display:flex; align-items:center; gap:8px; width:100%; padding:8px 12px; background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:999px; cursor:pointer; font-family:var(--sans); text-align:left; transition:background .15s,border-color .15s;}
+.combo-btn:hover{border-color:var(--border-strong);}
+.combo-blabel{font-size:10px; text-transform:uppercase; letter-spacing:.1em; font-weight:700; color:var(--muted); flex:0 0 auto;}
+.combo-bval{flex:0 1 auto; min-width:0; font-size:12px; font-weight:700; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.combo-bval:empty{display:none;}
+.combo-caret{flex:0 0 auto; margin-left:auto; font-size:10px; color:var(--muted);}
+.combo-btn.active{background:var(--accent); border-color:var(--accent2);}
+.combo-btn.active .combo-blabel,.combo-btn.active .combo-bval,.combo-btn.active .combo-caret{color:var(--paper);}
+.combo-menu{position:absolute; top:calc(100% + 6px); left:0; z-index:50; width:268px; max-width:calc(100vw - 40px); max-height:360px; display:flex; flex-direction:column; overflow:hidden; background:var(--panel); border:1px solid var(--border-strong); border-radius:8px; box-shadow:0 6px 18px rgba(42,60,53,.18);}
+.filter-row .combo:first-child .combo-menu{left:0; right:auto;}
+.filter-row .combo:last-child .combo-menu{left:auto; right:0;}
+.combo-menu[hidden]{display:none;}
+.combo-search-wrap{padding:6px; border-bottom:1px solid var(--border); background:var(--panel2);}
+.combo-search{width:100%; box-sizing:border-box; padding:6px 9px; font-family:var(--sans); font-size:12px; color:var(--text); background:var(--panel); border:1px solid var(--border); border-radius:6px; outline:none;}
+.combo-search:focus{border-color:var(--accent);}
+.combo-search::placeholder{color:var(--dim);}
+.combo-options{overflow:auto; padding:4px;}
+.combo-opt{padding:6px 10px; font-size:13px; color:var(--text); border-radius:5px; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.combo-opt:hover{background:var(--blue-soft);}
+.combo-opt.active{background:var(--blue-soft); outline:1px solid var(--accent); outline-offset:-1px;}
+.combo-opt.cur{background:var(--accent); color:var(--paper); font-weight:700;}
+.combo-opt.cur.active{outline:1px solid var(--accent2);}
+.combo-empty{padding:6px 10px; font-size:13px; color:var(--muted);}
+.plist-body{flex:1; overflow-y:auto;}
+.pitem{padding:11px 16px; border-bottom:1px solid var(--border); cursor:pointer; border-left:3px solid transparent;}
+.pitem:hover{background:rgba(255,255,255,.4);}
+.pitem.sel{background:var(--blue-soft); border-left-color:var(--blue-deep);}
+.pitem .pid{font-weight:700; font-size:13px;}
+.pitem .pnm{color:var(--muted); font-size:12px; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.pitem .prow{display:flex; align-items:center; gap:10px; margin-top:7px; font-size:11.5px;}
+.pitem .neg{color:var(--crit2); font-weight:700;}
+.pitem .zero{color:var(--dim);}
+.badge{display:inline-block; font-size:10.5px; font-weight:600; padding:3px 9px; border-radius:6px; color:#fff;}
+.badge.C{background:var(--crit);} .badge.W{background:var(--warn); color:#3c3318;} .badge.T{background:var(--watch); color:#3c3318;}
+.plist-foot{padding:10px 18px; font-size:11px; color:var(--dim); border-top:1px solid var(--border);}
+/* detail */
+.pdetail{flex:1; min-width:0; min-height:0; overflow:hidden; padding:18px 24px 18px; display:flex; flex-direction:column;}
+#tabbody{flex:1 1 0; min-height:0; display:flex; flex-direction:column;}
+#tabbody>.rb{flex:none;}
+.tbd-card{flex:1 1 0; min-height:0; display:flex; flex-direction:column;}
+.dhead{position:relative; overflow:hidden; color:#fff; background:radial-gradient(circle at 88% 12%, rgba(255,255,255,.20), transparent 32%),linear-gradient(90deg,#7c8d86 0%,#687970 45%,#55675f 100%); border-radius:16px; padding:13px 22px; box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 14px 32px rgba(55,73,65,.16);}
+.dhead::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:.03;background-image:radial-gradient(circle, rgba(0,0,0,.5) .6px, transparent .7px);background-size:5px 5px;mix-blend-mode:multiply;}
+.dhead h1{position:relative; font-size:18px; margin:0; font-weight:700; color:#fff; display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
+.dhead h1 .pid{color:rgba(255,255,255,.72); font-weight:700;}
+.dhead .sub{position:relative; color:rgba(255,255,255,.78); font-size:13px; margin-top:5px;}
+.tabs{display:flex; gap:4px; margin:16px 0 0; border-bottom:1px solid var(--border); flex-wrap:wrap;}
+.tabs button{background:none; border:none; color:var(--muted); font-size:13px; padding:9px 14px; cursor:pointer; border-bottom:2px solid transparent; font-weight:500;}
+.tabs button:hover{color:var(--text);}
+.tabs button.active{color:var(--blue-deep); border-bottom-color:var(--blue-deep); font-weight:600;}
+.rb{display:grid; grid-template-columns:215px 1fr 280px; gap:16px; margin-top:18px;}
+.card{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:15px 17px; box-shadow:var(--shadow);}
+.card h3{font-size:11px; letter-spacing:.6px; text-transform:uppercase; color:var(--muted); margin:0 0 13px; font-weight:600;}
+.card h3.ico{display:flex; align-items:center; gap:10px;}
+.hico{display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; min-width:28px; border-radius:8px; background:var(--blue-soft); line-height:1;}
+.hico svg{width:16px; height:16px; color:var(--blue-deep);}
+.stat{margin-bottom:16px;}
+.stat .lbl{font-size:11.5px; color:var(--muted);}
+.stat .val{font-size:25px; font-weight:800; margin-top:2px;}
+.stat .sub2{font-size:12px; font-weight:600; margin-top:1px;}
+.stat .neg{color:var(--crit);} .stat .negsub{color:var(--crit2);}
+.atable{width:100%; border-collapse:collapse;}
+.atable th{font-size:10.5px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); text-align:left; font-weight:600; padding:0 8px 9px;}
+.atable th.r,.atable td.r{text-align:right;}
+.atable th.c,.atable td.c{text-align:center;}
+.atable td{padding:9px 8px; border-top:1px solid var(--border); font-size:12.5px; vertical-align:middle;}
+.atable .anm{font-weight:600;}
+.atable .aedit{width:100%; box-sizing:border-box; font-family:var(--sans); font-size:12.5px; font-weight:600; color:var(--text); background:transparent; border:1px solid transparent; border-radius:6px; padding:5px 7px; transition:background .12s,border-color .12s;}
+.atable .aedit:hover{background:var(--panel2); border-color:var(--border);}
+.atable .aedit:focus{outline:none; background:var(--panel2); border-color:var(--accent);}
+.atable .aty{font-size:11px; color:var(--muted);}
+.tag2{display:inline-block; font-size:10px; font-weight:700; padding:2px 7px; border-radius:5px;}
+.tag2.cost,.tag2.res,.tag2.sched,.tag2.scope,.tag2.proc{background:var(--blue-soft); color:var(--blue-deep);}
+.atable input.imp{width:74px; background:var(--panel2); border:1px solid var(--border); border-radius:6px; color:#1f2e26; font-size:12px; padding:4px 6px; text-align:right;}
+.atable input.imph{color:#1f2e26;}
+.atable .lv{font-size:11.5px;}
+.atable .lv.High,.atable .lv.Medium,.atable .lv.Low{color:#1f2e26;}
+.atable .confsel.High,.atable .confsel.Medium,.atable .confsel.Low{color:#1f2e26;}
+.atable .lvsel{background:var(--panel2); border:1px solid var(--border); border-radius:6px; padding:3px 6px; font-size:11.5px; font-weight:400; cursor:pointer; color:#1f2e26;}
+.atable .delx{background:none; border:none; color:var(--dim); font-size:17px; line-height:1; cursor:pointer; padding:0 4px;}
+.atable .delx:hover{color:var(--crit2);}
+.addbtn{margin-top:12px; background:var(--blue-soft); border:1px dashed #aebfcf; color:var(--blue-deep); border-radius:8px; padding:8px 13px; font-size:12.5px; cursor:pointer; font-weight:600;}
+.rbhead{display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:14px;}
+.rbhead .htxt h3{margin:0 0 4px;}
+.rbhead .hsub{font-size:11.5px; color:var(--muted); white-space:nowrap;}
+.rbhead .aihint{color:var(--accent2); margin-top:7px;}
+.hbtns{display:flex; align-items:center; gap:10px; flex:none;}
+.hbtns .addbtn{margin-top:0; white-space:nowrap;}
+.aibtn{display:inline-flex; align-items:center; gap:6px; background:transparent; border:1px solid var(--border); color:var(--text); border-radius:8px; padding:8px 13px; font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap;}
+.aibtn:hover{background:var(--panel2); border-color:var(--border-strong);}
+.aibtn svg{width:14px; height:14px; color:var(--accent2);}
+.addbtn:hover{background:#dfe6ee;}
+.improw{display:flex; justify-content:space-between; align-items:flex-end; padding:11px 0; border-bottom:1px solid var(--border);}
+.improw .il{font-size:11.5px; color:var(--muted);}
+.improw .iv{font-size:17px; font-weight:800; margin-top:2px;}
+.improw .imp2{text-align:right; font-size:12px; font-weight:700;}
+.improw .good{color:var(--ok2);} .improw .bad{color:var(--crit2);} .improw .flat{color:var(--dim);}
+.imphdr{display:flex; justify-content:space-between; font-size:10px; letter-spacing:.4px; color:var(--dim); text-transform:uppercase; margin-bottom:4px;}
+.savebtn{width:100%; margin-top:16px; background:var(--blue-deep); border:none; color:#fff; border-radius:9px; padding:11px; font-size:13.5px; font-weight:600; cursor:pointer;}
+.savebtn:hover{background:var(--navy);}
+.resetbtn{width:100%; margin-top:9px; background:none; border:1px solid var(--border); color:var(--muted); border-radius:9px; padding:9px; font-size:12.5px; cursor:pointer;}
+.resetbtn:hover{color:var(--ink); background:rgba(83,111,98,.10);}
+.btncell{padding:12px 16px; border-left:1px solid var(--border); display:flex; flex-direction:column; justify-content:center; gap:8px; min-width:158px;}
+.btncell .addbtn,.btncell .resetbtn{width:100%; margin-top:0; text-align:center;}
+.saved{font-size:11.5px; color:var(--ok2); text-align:center; margin-top:9px; min-height:14px;}
+.notes{width:100%; min-height:90px; resize:vertical; background:var(--panel2); border:1px solid var(--border); border-radius:9px; color:var(--text); font-size:13px; padding:10px 12px; font-family:inherit; line-height:1.5;}
+.notes.sm{min-height:120px; font-size:12px; padding:8px 10px;}
+.notesec{margin-top:16px; padding-top:14px; border-top:1px solid var(--border);}
+.notesec h3{margin-bottom:9px;}
+.notemeta{font-size:11px; color:var(--dim); margin-top:7px;}
+.ttable{width:100%; border-collapse:collapse; font-size:12px; margin-top:6px;}
+.ttable th{text-align:right; color:var(--dim); font-weight:600; font-size:10px; letter-spacing:.04em; text-transform:uppercase; padding:6px 8px; border-bottom:1px solid var(--border); white-space:nowrap; position:sticky; top:0; background:var(--panel);}
+.ttable th:first-child{text-align:left;}
+.ttable td{padding:6px 8px; border-bottom:1px solid var(--border);}
+.ttable td.tnm{text-align:left; color:var(--ink); max-width:360px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.ttable td.r{text-align:right; font-variant-numeric:tabular-nums; color:var(--text);}
+.ttable td.neg{color:var(--crit);}
+.ttable td.pos{color:#4a8c63;}
+.ttable tr.tot td{border-top:2px solid var(--border-strong); border-bottom:none; font-weight:700; color:var(--ink); padding-top:9px;}
+.twrap{flex:1 1 0; min-height:0; overflow-y:auto; margin-top:8px;}
+.tgrp{font-size:11px; color:var(--muted); margin:-4px 0 8px;}
+.thead-row{position:relative; overflow:hidden; display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 0 12px; padding:10px 16px; border-radius:12px; color:#fff; background:radial-gradient(circle at 90% 15%, rgba(255,255,255,.20), transparent 34%),linear-gradient(90deg,#7c8d86 0%,#687970 45%,#55675f 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 10px 24px rgba(55,73,65,.14);}
+.thead-row::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:.03;background-image:radial-gradient(circle, rgba(0,0,0,.5) .6px, transparent .7px);background-size:5px 5px;mix-blend-mode:multiply;}
+.thead-row h3{position:relative; color:#fff;}
+.thead-row .hico{position:relative; background:rgba(255,255,255,.18);}
+.thead-row .hico svg{color:#fff;}
+.tsort{position:relative; display:flex; align-items:center; gap:8px; font-size:11.5px; color:rgba(255,255,255,.82); white-space:nowrap;}
+.tsort select{background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.42); color:#fff; border-radius:7px; font-size:12px; padding:5px 8px; cursor:pointer;}
+.tsort select option{color:#28342f; background:#fff;}
+.tfoot{font-size:10.5px; color:var(--dim); margin-top:8px;}
+.isum{display:grid; grid-template-columns:1fr 1fr 1fr auto; align-items:stretch; margin-top:16px; background:var(--panel2); border:1px solid var(--border); border-radius:12px; overflow:hidden;}
+.isum .cell{display:flex; align-items:center; gap:13px; padding:14px 16px;}
+.isum .cell+.cell{border-left:1px solid var(--border);}
+.isum .ib{width:36px; height:36px; min-width:36px; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; background:rgba(35,39,46,.05); color:var(--muted);}
+.isum .ib svg{width:19px; height:19px;}
+.isum .ib.blue{background:var(--blue-soft); color:var(--blue-deep);}
+.isum .ib.amber{background:rgba(194,163,95,.18); color:var(--warn2);}
+.isum .ib.green{background:rgba(125,155,127,.2); color:var(--ok2);}
+.isum .tl{font-size:9.5px; letter-spacing:.05em; text-transform:uppercase; color:var(--dim); margin-bottom:2px;}
+.isum .bigv{font-size:21px; font-weight:700; color:var(--text); line-height:1.05;}
+.isum .bigv.green{color:var(--ok2);}
+.isum .sl{font-size:10.5px; color:var(--muted); margin-top:2px;}
+.nameRow input{width:100%; background:var(--panel2); border:1px solid var(--border); border-radius:8px; padding:7px 10px; color:var(--text); font-size:12px; margin-bottom:10px;}
+.nameRow input::placeholder{color:var(--dim);}
+.ioBtn{display:block; width:100%; text-align:left; background:var(--blue-soft); border:1px solid #cdd9e3; color:var(--blue-deep); border-radius:8px; padding:8px 11px; font-size:12px; font-weight:600; cursor:pointer; margin-bottom:7px;}
+.ioBtn:hover{background:#dfe6ee;}
+.ioBtn.ghost{background:none; border:1px solid var(--border); color:var(--muted);}
+.ioBtn.ghost:hover{background:rgba(83,111,98,.10); color:var(--ink);}
+.placeholder{color:var(--dim); padding:40px; text-align:center; font-size:14px;}
+@media(max-width:1200px){.rb{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo">
+      <svg class="mark" viewBox="0 0 42 46" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M21 2 L39 12 V34 L21 44 L3 34 V12 Z" stroke="#b3805f" stroke-width="2.2" fill="rgba(179,128,95,0.07)"/>
+        <path d="M21 14 L30 31 H12 Z" stroke="#c2a35f" stroke-width="2" fill="none" stroke-linejoin="round"/>
+        <rect x="20" y="20" width="2" height="6" rx="1" fill="#c2a35f"/><circle cx="21" cy="28.5" r="1.2" fill="#c2a35f"/>
+      </svg>
+      <div>
+        <div class="bt">NORTHSTAR</div>
+        <div class="bs">Project Recovery</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <a href="early-warning-system.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>Dashboard</a>
+      <a class="active" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Projects</a>
+    </nav>
+    <div class="plist">
+      <div class="plist-head">
+        <div class="filter-row">
+          <select id="pmoFilter" class="pmosel"><option value="">All PMOs</option></select>
+          <select id="pmFilter" class="pmosel"><option value="">All Project Managers</option></select>
+        </div>
+      </div>
+      <div class="plist-body" id="plistBody"></div>
+    </div>
+    <div class="side-foot">
+      <a class="home" href="index.html">← Hub</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="pdetail" id="pdetail"></div>
+  </main>
+</div>
+
+<script src="recovery_plans.js"></script>
+<script src="project_tasks.js"></script>
+<script>
+window.PROJECTS = [];   // legacy slot -- superseded by the regenerated assignment below
+// columns: 0 id,1 name,2 type(C/H),3 costVar%,4 hoursVar%,5 costOvr$,6 hoursOvr#,7 budget,8 FAC$,9 hoursAtCompl,10 PM,11 location,12 tier(C/W/T)
+// === Filtered to IN PROGRESS at-risk projects (Critical+Warning+Watch), as of September 26, 2026 — this assignment overrides the array above ===
+window.PROJECTS = [["25-PC-43286","Riverbend Highway Widening - Phase II Testing","C",553,500,60265,730,10904,71168,876,"Seth Zavala","Meridian Central","C"],["25-PC-33105","Redbud Data Recovery","H",288,458,6682,105,2324,9006,128,"Kimberly Daugherty","Front Range","C"],["25-PC-35340","Goldfinch Bridge Replacement Paleontological Monitoring","H",161,364,22368,539,13920,36288,687,"Bernard Erickson","Gulf Coast","C"],["26-PC-32394","Timber Gap Highway Widening Paleontological Monitoring","H",227,246,21581,221,9523,31104,311,"Bryan Mann","Chesapeake","C"],["26-PC-35103","Kestrel Butte Harbor Dredging - Historic Resources Evaluation","H",192,193,37000,486,19287,56287,738,"Courtney Daugherty","Gulf Coast","C"],["26-PC-37559","Badger Hollow Paleontological Monitoring","H",68,165,19153,324,28024,47177,520,"Jody Chung","Piedmont","C"],["25-PC-44312","Task Order 19: Millbrook Bridge Replacement Class III Survey","H",11,149,8038,481,71004,79042,803,"Randy Cantu","NH Gulf (USD)","C"],["26-PC-34982","Sandpiper Historic Resources Evaluation","C",138,125,10922,137,7896,18818,247,"Bernard Erickson","Gulf Coast","C"],["26-PC-40464","Slate Ridge Trail - Paleontological Monitoring","H",54,131,2950,92,5493,8443,162,"Donna Herring","Sierra","C"],["25-PC-33922","Slate Ridge Data Recovery","C",125,109,20218,247,16113,36331,474,"Nathan Lambert","Great Lakes","C"],["24-PC-41154","Lantern Bay Mine Expansion Data Recovery","H",0,114,0,1190,131090,131090,2232,"Alexis Nixon","Coastal Bend","C"],["26-PC-34757","Kestrel Butte Data Recovery","H",74,112,22360,316,30231,52591,597,"Angelica Cervantes","Great Lakes","C"],["25-PC-41385","Tamarack Levee Repair - Historic Resources Evaluation","H",48,108,56856,882,119171,176027,1701,"Diane Daniels","Coastal Bend","C"],["25-PC-39765","Phase II: Windmill Flat Wind Farm Built Environment Survey","C",106,103,38645,539,36552,75197,1061,"Javier Newman","Red Rock","C"],["25-PC-31109","Riverbend GIS Mapping","H",49,105,53408,825,109484,162892,1610,"Cassidy Gay","Cascade","C"],["25-PC-37164","Yarrow Point Wastewater Plant - Phase I Survey","H",81,103,40603,518,50299,90902,1021,"Glen Delacruz","Hill Country","C"],["25-PC-32495","Oak Terrace Canal Lining - Phase I Survey","H",50,99,42571,647,85013,127585,1298,"Sandy Kerr","Chesapeake","C"],["25-PC-35182","Rushgrass Draw Battery Storage Architectural History Survey","H",25,95,5961,260,23496,29457,533,"Wyatt Erickson","Gulf Coast","C"],["25-PC-36645","Falcon Mesa Archaeological Testing","C",92,21,18620,111,20302,38923,636,"Jeanette Riddle","Lakeshore","C"],["25-PC-34780","Sumac Ridge Canal Lining Paleontological Monitoring","H",61,90,31566,597,51638,83204,1259,"Gina Beltran","Great Lakes","C"],["25-PC-43203","Bramble Creek Mine Expansion Archaeological Testing","H",84,87,89419,1246,106315,195734,2677,"Seth Zavala","Meridian Central","C"],["25-PC-30772","Sea Oat Cultural Resources Assessment","H",31,86,13351,445,43066,56417,962,"Alice Galloway","Bluegrass","C"],["25-PC-35361","Millbrook Fiber Route - Historic Resources Evaluation","H",36,85,7175,274,20032,27207,595,"Courtney Daugherty","Gulf Coast","C"],["25-PC-36485","Task Order 2: Larkspur Substation Historic Resources Evaluation","H",32,79,8407,190,25871,34278,431,"Becky Velazquez","Island","C"],["25-PC-43566","Copper Flats Solar - Phase II Testing","C",78,0,57571,8,73887,131458,8,"Mathew Shea","Meridian Central","C"],["25-PC-34176","Meadowlark Mixed-Use Development - Historic Resources Evaluation","H",16,78,5989,229,36718,42707,523,"Geoffrey Fernandez","Great Lakes","C"],["25-PC-31590","Task Order 11: Kestrel Butte Mine Expansion Cultural Resources Monitoring","H",33,77,3906,107,11810,15716,246,"Jean Cooke","Cascade","C"],["26-PC-40334","Stone Mill Airport Apron - Class III Survey","H",19,73,13256,532,68402,81658,1263,"Donna Herring","Sierra","C"],["26-PC-30501","Hackberry Bend Bridge Replacement Architectural History Survey","H",31,72,4367,143,14258,18625,342,"Brendan Melton","Big Sky","C"],["24-PC-34499","Dove Canyon Trail - GIS Mapping","H",0,71,0,405,76428,76428,973,"Brendan Padilla","Great Lakes","C"],["25-PC-32447","Pebble Beach Road Archaeological Testing","H",24,70,14931,586,61772,76703,1426,"Alexandria Wilkinson","Chesapeake","C"],["25-PC-30803","Saltgrass Cell Tower Built Environment Survey","H",6,69,4720,494,85464,90184,1207,"Alice Galloway","Bluegrass","C"],["25-PC-30077","Phase II: Tamarack Housing Development Phase I Survey","H",1,68,426,490,71293,71719,1208,"Carl Barajas","Big Sky","C"],["25-PC-34451","North Fork Curation","H",31,66,10013,206,32526,42539,516,"Robin Mercado","Great Lakes","C"],["25-PC-36809","Sandpiper Park Improvements - Archaeological Testing","H",63,66,10185,121,16236,26421,303,"Samuel Wilkerson","Hill Country","C"],["24-PC-32201","Task Order 14: Hawk Point Harbor Dredging Maritime Remote Sensing Survey","C",62,41,22799,286,36731,59531,983,"Jason Oconnor","Chesapeake","C"],["25-PC-35963","Quail Run Substation - Section 106 Consultation","H",12,58,25321,1335,216192,241513,3645,"Kathy Hurley","High Desert","C"],["24-PC-30233","Bramble Creek Mine Expansion Phase I Survey","C",57,22,34165,294,59544,93709,1626,"Javier Estrada","Big Sky","C"],["25-PC-38879","Kestrel Butte Built Environment Survey","H",0,56,0,398,70324,70324,1110,"Marisa Odom","Red Rock","C"],["26-PC-43546","Stone Mill Wastewater Plant - GIS Mapping","H",24,55,24689,515,105043,129733,1446,"Clinton Solis","Meridian Central","C"],["23-PC-32329","Rushgrass Draw Historic Resources Evaluation","H",0,54,0,819,111109,111109,2325,"Sandy Kerr","Chesapeake","C"],["25-PC-40523","On-Call: Oak Terrace Reservoir Section 106 Consultation","C",54,41,26820,365,49579,76400,1245,"Donna Herring","Sierra","C"],["26-PC-34602","Phase III: Sandpiper Park Improvements Historic Resources Evaluation","H",1,53,301,127,26501,26802,366,"Brendan Padilla","Great Lakes","C"],["26-PC-34101","North Fork Rail Siding Paleontological Monitoring","C",52,0,27863,36,53088,80951,36,"Nathan Lambert","Great Lakes","C"],["26-PC-38737","Pebble Beach Road Wind Farm Historic Resources Evaluation","C",50,0,30124,86,60828,90952,86,"Tina Aguirre","Red Rock","C"],["25-PC-32323","Hackberry Bend Canal Lining Data Recovery","H",23,49,34249,808,150874,185123,2450,"Ian Maddox","Chesapeake","C"],["25-PC-35779","Task Order 9: Juniper Wash Wastewater Plant Built Environment Survey","H",14,49,12017,365,84974,96991,1111,"Bridget Maddox","High Desert","C"],["24-PC-36978","Slate Ridge Water Main Archaeological Testing","H",21,48,24154,582,113970,138124,1791,"Glen Delacruz","Hill Country","C"],["26-PC-41667","Kestrel Butte Transmission Line - Historic Resources Evaluation","H",19,47,18383,434,98660,117043,1354,"Duane Ballard","Coastal Bend","C"],["25-PC-38754","On-Call: Sparrow Hill Solar Section 106 Consultation","C",46,40,19133,293,41637,60770,1033,"Javier Newman","Red Rock","C"],["23-PC-38231","On-Call: Copper Flats Rail Siding Curation","H",0,46,0,494,90073,90073,1574,"Sherry Lloyd","Prairie","C"],["25-PC-32899","Lone Pine Mixed-Use Development Phase I Survey","C",46,19,23425,151,51399,74824,948,"Jeremy Tran","Front Range","C"],["25-PC-35272","Thistle Down Cell Tower - Historic Resources Evaluation","H",25,45,8893,301,35983,44876,966,"Bernard Erickson","Gulf Coast","C"],["25-PC-33473","Dove Canyon Bridge Replacement Paleontological Monitoring","H",1,45,199,149,29137,29336,482,"Devon Pitts","Front Range","C"],["26-PC-41661","Ember Valley Levee Repair Data Recovery","H",41,44,1639,22,4028,5667,70,"Diane Daniels","Coastal Bend","C"],["23-PC-36422","Hawk Point Phase I Survey","H",2,43,831,159,36579,37410,524,"Joan Mathis","Island","C"],["24-PC-39091","Phase I: Dove Canyon Battery Storage Class III Survey","C",43,20,30986,264,72685,103671,1568,"Shelia Horne","Red Rock","C"],["25-PC-43844","Slate Ridge Battery Storage Class III Survey","H",26,42,8689,123,33908,42597,413,"Alan Gay","Meridian Southwest","C"],["25-PC-30581","Phase II: Foxglove Harbor Dredging Data Recovery","H",10,42,1286,62,13028,14313,211,"Alice Galloway","Bluegrass","C"],["26-PC-35510","Blue Heron Wind Farm - Phase I Survey","H",10,41,5150,306,53680,58830,1052,"Eileen Poole","High Desert","C"],["25-PC-42717","Task Order 24: Sea Oat Cell Tower Data Recovery","H",1,41,1322,371,95797,97119,1284,"Kyle Maynard","Maritime","C"],["23-PC-36734","Raven Rock Curation","H",0,41,10,137,27753,27763,474,"Terrence Gillespie","Lakeshore","C"],["25-PC-36641","Sparrow Hill Airport Apron Phase II Testing","C",40,39,47181,660,117609,164790,2351,"Lucas Benson","Lakeshore","C"],["24-PC-40067","Saltgrass Fiber Route Class III Survey","H",0,39,0,671,163684,163684,2409,"Marisa Odom","Red Rock","C"],["25-PC-34652","Coyote Springs Section 106 Consultation","H",15,38,26593,667,180928,207521,2400,"Gina Beltran","Great Lakes","C"],["26-PC-33743","Raven Rock Canal Lining Architectural History Survey","H",13,38,9555,194,75767,85322,705,"Brendan Padilla","Great Lakes","C"],["23-PC-34440","Dove Canyon Bridge Replacement - Phase II Testing","H",0,37,0,927,333757,333757,3422,"Angelica Cervantes","Great Lakes","C"],["23-PC-41897","Elk Meadow Fiber Route Archaeological Testing","H",0,37,31,54,12705,12736,201,"Jesse Maynard","Built Environment","C"],["24-PC-37235","Coyote Springs Bridge Replacement - Phase II Testing","H",1,36,216,115,40709,40925,431,"Samuel Wilkerson","Hill Country","C"],["25-PC-35496","Silver Lake Airport Apron Class III Survey","C",36,15,3631,23,10132,13763,178,"Kathy Hurley","High Desert","C"],["25-PC-39035","Rushgrass Draw School Campus - Built Environment Survey","H",5,36,8259,707,174704,182963,2685,"Tina Aguirre","Red Rock","C"],["23-PC-40519","Windmill Flat Mixed-Use Development - Class III Survey","H",0,35,0,441,157875,157875,1698,"Donna Herring","Sierra","C"],["25-PC-35485","Wren Hollow Transmission Line - Phase I Survey","C",35,32,31553,431,90994,122547,1775,"Kathy Hurley","High Desert","C"],["25-PC-35897","Phase I: Riverbend Wastewater Plant Class III Survey","H",0,34,177,300,61051,61227,1172,"Jody Wang","High Desert","C"],["23-PC-36687","On-Call: Pine Hollow Transmission Line Environmental Review Support","H",0,34,0,439,151514,151514,1729,"Jeanette Riddle","Lakeshore","C"],["25-PC-35040","Hackberry Bend Rail Siding Class III Survey","H",21,34,10092,272,48880,58972,1071,"Bernard Erickson","Gulf Coast","C"],["25-PC-31784","On-Call: Badger Hollow Pipeline Archaeological Testing","H",22,34,36999,885,171337,208336,3486,"Preston Duarte","Cascade","C"],["24-PC-43157","Thistle Down Solar - Maritime Remote Sensing Survey","C",34,0,4749,0,14170,18919,0,"Sylvia Callahan","Geospatial","C"],["24-PC-38486","Kestrel Butte Phase I Survey","H",14,33,14822,576,105044,119866,2305,"Jeanette Chung","Red Rock","C"],["25-PC-31417","Sandpiper Park Improvements Phase I Survey","C",33,11,12719,75,38782,51500,782,"Cassidy Gay","Cascade","C"],["24-PC-35661","On-Call: Willow Springs Reservoir Archaeological Testing","H",20,31,9906,316,49013,58919,1321,"Kathy Hurley","High Desert","C"],["24-PC-33822","Task Order 36: Windmill Flat School Campus Cultural Resources Monitoring","H",10,31,5059,134,49568,54627,565,"Karl Valenzuela","Great Lakes","C"],["25-PC-38042","Oak Terrace School Campus GIS Mapping","H",0,29,0,40,19083,19083,176,"Sherry Lloyd","Prairie","C"],["24-PC-40479","Quail Run Rail Siding - Built Environment Survey","H",0,29,0,267,110619,110619,1202,"Donna Herring","Sierra","C"],["25-PC-32795","North Fork Water Main Architectural History Survey","H",11,28,1256,39,11651,12907,177,"Reginald Vargas","Front Range","C"],["26-PC-40361","Sea Oat Cultural Resources Assessment","H",10,28,9908,268,102830,112737,1218,"Donna Herring","Sierra","C"],["25-PC-44140","Stone Mill Archaeological Testing","H",21,28,20679,332,100298,120977,1525,"Tonya Spence","NH Gulf (USD)","C"],["24-PC-39511","Juniper Wash Pipeline - Archaeological Testing","C",28,0,6406,0,23228,29634,0,"Tina Aguirre","Red Rock","C"],["24-PC-40782","Saltgrass Battery Storage - Historic Resources Evaluation","C",28,0,10225,12,37137,47362,12,"Alexis Nixon","Coastal Bend","C"],["25-PC-40722","Goldfinch Canal Lining - Archaeological Testing","H",0,27,0,242,119491,119491,1122,"Duane Ballard","Coastal Bend","C"],["23-PC-31769","Rushgrass Draw Paleontological Monitoring","H",10,27,2761,98,28780,31541,465,"Gene Nixon","Cascade","C"],["23-PC-43692","Riverbend Levee Repair - Cultural Resources Monitoring","H",0,26,0,229,77638,77638,1101,"Lynn Tran","Meridian Southwest","C"],["25-PC-41854","Hackberry Bend Rail Siding - Section 106 Consultation","C",26,13,6663,77,25920,32583,654,"Rickey Salas","Built Environment","C"],["25-PC-35525","Dove Canyon Rail Siding - Section 106 Consultation","H",14,25,11306,177,78447,89753,884,"Bridget Maddox","High Desert","C"],["26-PC-41202","Quail Run Bridge Replacement Phase I Survey","H",11,25,2954,98,27278,30233,490,"Jared Choi","Coastal Bend","C"],["25-PC-41635","Plover Cove Rail Siding GIS Mapping","H",4,25,11858,839,281890,293747,4204,"Jared Choi","Coastal Bend","W"],["25-PC-34732","Thistle Down Trail Architectural History Survey","H",0,24,0,131,76442,76442,685,"Geoffrey Fernandez","Great Lakes","W"],["25-PC-31298","On-Call: Lone Pine Water Main Class III Survey","H",1,23,396,98,35362,35758,518,"Cassidy Gay","Cascade","W"],["23-PC-30869","Lone Pine Housing Development - Paleontological Monitoring","H",0,22,0,89,34501,34501,488,"Kiara Gillespie","Bluegrass","W"],["25-PC-37732","Hawk Point Housing Development Class III Survey","H",14,22,6507,97,45825,52332,533,"Megan Pineda","Piedmont","W"],["25-PC-41764","Stone Mill Environmental Review Support","H",0,22,0,62,15643,15643,348,"Jenny Wilkinson","Built Environment","W"],["24-PC-31663","Fern Valley Section 106 Consultation","H",0,21,0,102,37714,37714,589,"Jean Cooke","Cascade","W"],["23-PC-31374","Juniper Wash Canal Lining Environmental Review Support","C",21,3,34678,86,168225,202903,3428,"Donald Lutz","Cascade","W"],["25-PC-36129","Larkspur Rail Siding Environmental Review Support","C",20,8,15841,102,78124,93966,1356,"Kathy Hurley","High Desert","W"],["25-PC-32861","Yarrow Point Architectural History Survey","C",20,0,8340,4,41556,49895,4,"Dean Velazquez","Front Range","W"],["23-PC-34229","Creosote Draw Mixed-Use Development Paleontological Monitoring","H",0,19,0,63,34428,34428,393,"Jeff Pugh","Great Lakes","W"],["25-PC-35761","Hackberry Bend Transmission Line Archaeological Testing","H",3,19,3681,482,136397,140078,3009,"Kathy Hurley","High Desert","W"],["25-PC-31555","Wren Hollow Architectural History Survey","H",7,19,3573,122,53098,56671,763,"Gene Nixon","Cascade","W"],["23-PC-34745","Slate Ridge Battery Storage Environmental Review Support","H",0,19,0,627,440259,440259,3981,"Robin Mercado","Great Lakes","W"],["23-PC-35225","Tansy Flat Rail Siding - Archaeological Testing","H",0,18,0,795,321140,321140,5137,"Wyatt Erickson","Gulf Coast","W"],["25-PC-34850","Thistle Down Section 106 Consultation","H",16,18,18353,298,117036,135389,1936,"Wyatt Erickson","Gulf Coast","W"],["25-PC-30717","Phase II: Riverbend Cell Tower Built Environment Survey","H",10,18,21519,479,205679,227197,3137,"Alice Galloway","Bluegrass","W"],["25-PC-36336","Sea Oat Canal Lining Data Recovery","H",7,18,1690,49,25855,27544,327,"Briana Melton","Island","W"],["25-PC-36507","Saltgrass Cell Tower Phase II Testing","H",1,17,546,99,54269,54816,667,"Joan Mathis","Island","W"],["25-PC-39424","Tansy Flat Cultural Resources Assessment","C",17,9,2385,20,13883,16268,233,"Shelia Horne","Red Rock","W"],["25-PC-33183","Saltgrass Architectural History Survey","C",17,13,13595,194,79399,92994,1658,"Dean Velazquez","Front Range","W"],["26-PC-35381","Badger Hollow Mine Expansion Archaeological Testing","H",7,17,3621,109,51065,54686,766,"Bridget Maddox","High Desert","W"],["25-PC-38540","Ember Valley Park Improvements - Class III Survey","H",10,16,34686,860,357706,392392,6156,"Jeanette Chung","Red Rock","W"],["25-PC-33065","Wren Hollow GIS Mapping","H",0,16,0,69,40748,40748,492,"Dean Velazquez","Front Range","W"],["24-PC-32209","Saltgrass Wastewater Plant - Phase I Survey","H",6,16,550,12,9029,9579,86,"Ian Maddox","Chesapeake","W"],["25-PC-37392","Eagle Bend Wind Farm - Phase I Survey","H",11,15,5507,92,50699,56206,687,"Maria Parrish","Piedmont","W"],["26-PC-37705","On-Call: Silver Lake Canal Lining Curation","H",10,15,3257,66,32313,35570,494,"Jody Chung","Piedmont","W"],["24-PC-32688","Phase II: Tamarack Reservoir Paleontological Monitoring","H",0,15,0,88,45206,45206,676,"Ian Maddox","Chesapeake","W"],["26-PC-38943","Task Order 34: Fern Valley Wastewater Plant Archaeological Testing","H",15,15,11933,224,80272,92205,1718,"Marisa Odom","Red Rock","W"],["25-PC-40383","North Fork Archaeological Testing","H",1,15,809,282,144185,144994,2170,"Donna Herring","Sierra","W"],["23-PC-41134","Creosote Draw Park Improvements Class III Survey","H",12,14,5234,97,42715,47949,773,"Steve Rubio","Coastal Bend","W"],["25-PC-33294","Fern Valley Substation - Built Environment Survey","H",1,14,757,141,91032,91789,1125,"Joanna Herrera","Front Range","W"],["23-PC-38498","Tansy Flat Wind Farm Built Environment Survey","H",0,13,0,90,44689,44689,772,"Shelia Horne","Red Rock","W"],["23-PC-41613","Tamarack School Campus Archaeological Testing","H",0,12,0,170,105100,105100,1564,"Steve Rubio","Coastal Bend","W"],["24-PC-42121","Oak Terrace Substation Maritime Remote Sensing Survey","H",0,12,186,287,208454,208640,2653,"Kathleen Cabrera","Built Environment","W"],["25-PC-41500","Task Order 24: Elk Meadow Mixed-Use Development Historic Resources Evaluation","C",12,1,11391,33,94157,105548,2372,"Jared Choi","Coastal Bend","W"],["26-PC-43329","Sumac Ridge Cell Tower Built Environment Survey","C",12,4,3242,16,27427,30669,415,"Mathew Shea","Meridian Central","W"],["24-PC-30679","Kestrel Butte Maritime Remote Sensing Survey","H",11,12,5020,109,45577,50597,1039,"Kiara Gillespie","Bluegrass","W"],["26-PC-38410","On-Call: Tamarack Park Improvements Class III Survey","H",0,12,0,46,32887,32887,441,"Sherry Lloyd","Prairie","W"],["24-PC-33384","Phase III: Pine Hollow Rail Siding Maritime Remote Sensing Survey","H",0,11,0,240,207230,207230,2334,"Dean Velazquez","Front Range","W"],["23-PC-36385","On-Call: Cedar Hollow Transmission Line Paleontological Monitoring","H",0,11,0,267,262009,262009,2772,"Maurice Dodson","Island","W"],["25-PC-32867","Larkspur Levee Repair Maritime Remote Sensing Survey","H",4,10,3647,107,82728,86375,1149,"Devon Pitts","Front Range","W"],["26-PC-41334","Fern Valley Housing Development - Data Recovery","H",4,10,4186,158,99198,103384,1717,"Duane Ballard","Coastal Bend","W"],["25-PC-37881","Phase II: Heron Marsh Mine Expansion Historic Resources Evaluation","C",10,7,609,8,6021,6629,123,"Megan Pineda","Piedmont","W"],["24-PC-33448","Ember Valley Solar Architectural History Survey","H",0,10,279,679,419973,420252,7418,"Devon Pitts","Front Range","W"],["25-PC-30345","Wildrye Phase II Testing","H",1,10,893,110,92631,93524,1207,"Brendan Melton","Big Sky","W"],["25-PC-33332","Willow Springs Cultural Resources Assessment","H",1,10,449,84,69588,70037,921,"Dean Velazquez","Front Range","T"],["26-PC-31505","Raven Rock Levee Repair - Built Environment Survey","H",1,10,418,38,34033,34450,432,"Donald Lutz","Cascade","T"],["23-PC-30543","Phase III: Riverbend Rail Siding Maritime Remote Sensing Survey","H",0,9,0,241,255629,255629,2779,"Javier Estrada","Big Sky","T"],["25-PC-39554","Thistle Down Archaeological Testing","H",0,9,219,80,63594,63813,969,"Tina Aguirre","Red Rock","T"],["24-PC-41023","Phase I: Bramble Creek Levee Repair Phase I Survey","H",0,9,0,47,39984,39984,581,"Alexis Nixon","Coastal Bend","T"],["25-PC-38296","Ember Valley Pipeline - GIS Mapping","H",1,9,1232,127,111170,112402,1609,"Sherry Lloyd","Prairie","T"],["23-PC-33553","Phase III: Yarrow Point Reservoir Archaeological Testing","C",9,0,1307,0,15245,16552,0,"Kimberly Daugherty","Front Range","T"],["25-PC-39896","Task Order 8: Raven Rock Highway Widening Archaeological Testing","H",0,8,-3,507,540258,540255,6807,"Lydia Cisneros","Red Rock","T"],["25-PC-41341","Phase II: Coyote Springs Highway Widening Curation","H",0,8,0,117,131617,131617,1576,"Diane Daniels","Coastal Bend","T"],["23-PC-35533","Task Order 19: Granite Pass Reservoir Section 106 Consultation","H",0,8,0,10,8207,8207,133,"Eileen Poole","High Desert","T"],["24-PC-31434","Pebble Beach Road Cultural Resources Assessment","H",0,8,0,11,12418,12418,149,"Jean Cooke","Cascade","T"],["23-PC-32443","Tamarack Battery Storage - Cultural Resources Monitoring","H",0,8,173,79,107415,107588,1109,"Bryan Mann","Chesapeake","T"],["25-PC-38563","Elk Meadow Highway Widening - Architectural History Survey","H",7,8,9489,228,137698,147187,3192,"Lydia Cisneros","Red Rock","T"],["26-PC-38924","Wildrye Harbor Dredging - Architectural History Survey","H",5,8,4283,97,83798,88081,1376,"Shelia Horne","Red Rock","T"],["23-PC-40052","Oak Terrace Transmission Line Cultural Resources Monitoring","H",0,7,316,99,80196,80513,1473,"Javier Newman","Red Rock","T"],["23-PC-33151","Sandpiper Class III Survey","H",0,7,0,434,497639,497639,6446,"Kimberly Daugherty","Front Range","T"],["23-PC-33070","Meadowlark Curation","H",0,7,0,32,34300,34300,493,"Reginald Vargas","Front Range","T"],["23-PC-37105","Foxglove Housing Development - Data Recovery","H",2,7,1791,41,80165,81956,624,"Theresa Fernandez","Hill Country","T"],["24-PC-39923","Fern Valley Fiber Route - Data Recovery","H",0,7,1353,323,270722,272075,5196,"Lydia Cisneros","Red Rock","T"],["25-PC-38333","Pine Hollow Cell Tower Phase II Testing","H",0,7,0,48,51450,51450,774,"Sherry Lloyd","Prairie","T"],["24-PC-43150","Rushgrass Draw Architectural History Survey","H",0,6,379,276,222689,223068,4581,"Sylvia Callahan","Geospatial","T"],["26-PC-38387","Granite Pass Section 106 Consultation","C",6,4,7412,68,120359,127770,1712,"Sherry Lloyd","Prairie","T"],["25-PC-34088","Timber Gap Harbor Dredging Cultural Resources Monitoring","H",0,6,0,13,29042,29042,224,"Leonard Mejia","Great Lakes","T"],["24-PC-37686","Twin Buttes Mixed-Use Development Paleontological Monitoring","H",0,6,0,30,39156,39156,520,"Annette Vaughan","Piedmont","T"],["24-PC-39825","On-Call: Twin Buttes Housing Development GIS Mapping","H",2,6,350,14,14309,14659,252,"Bruce Suarez","Red Rock","T"],["25-PC-31180","Blue Heron Environmental Review Support","C",6,0,3394,4,60702,64096,4,"Preston Duarte","Cascade","T"],["25-PC-32024","Pine Hollow Historic Resources Evaluation","H",1,5,682,31,57638,58320,596,"Ian Maddox","Chesapeake","T"],["24-PC-34320","Sage Flat Canal Lining Curation","H",0,5,0,153,253927,253927,2968,"Nathan Lambert","Great Lakes","T"],["26-PC-42757","Task Order 4: Tansy Flat Wind Farm Archaeological Testing","H",2,5,5906,201,256364,262270,3916,"Kyle Maynard","Maritime","T"],["24-PC-42437","Task Order 36: Wren Hollow Water Main Maritime Remote Sensing Survey","H",2,5,3768,186,173567,177335,3697,"Charlene Sparks","Paleontology","T"],["23-PC-39323","Silver Lake Battery Storage Class III Survey","H",0,5,0,334,444995,444995,6686,"Tina Aguirre","Red Rock","T"],["24-PC-40956","Foxglove Airport Apron - Maritime Remote Sensing Survey","C",5,0,356,0,6914,7270,0,"Diane Daniels","Coastal Bend","T"]];
+const P = window.PROJECTS.map(a=>({id:a[0],name:a[1],type:a[2],cv:a[3],hv:a[4],co:a[5],ho:a[6],bud:a[7],fac:a[8],hac:a[9],pm:a[10],loc:a[11],tier:a[12]||'C'}));
+const TIERLBL={C:'Critical',W:'Warning',T:'Watch',O:'On Track'};
+const fmtMoney=v=>{const a=Math.abs(v); const s=v<0?'-':''; if(a>=1e6)return s+'$'+(a/1e6).toFixed(2)+'M'; if(a>=1e3)return s+'$'+Math.round(a/1e3)+'K'; return s+'$'+Math.round(a);};
+const fmtNum=v=>Math.round(v).toLocaleString('en-US');
+const signNum=v=>(v>0?'+':'')+fmtNum(v);
+const pct=v=>(v>0?'+':'')+v.toFixed(1)+'%';
+const r2=v=>Math.round(v*100)/100;
+const usd=v=>'$'+Math.round(v).toLocaleString('en-US');
+const usdSigned=v=>(v<0?'-$':'$')+Math.abs(Math.round(v)).toLocaleString('en-US');
+
+// recovery-action templates (impact scaled to each project's overrun)
+const TEMPLATES=[
+  {name:'Pre-Review GPTs for Reporting',type:'Cost Reduction',cls:'cost',cf:0.35,hf:0.20,effort:'High',conf:'High'},
+  {name:'Digital Field Data Collection',type:'Resource Optimization',cls:'res',cf:0.18,hf:0.22,effort:'High',conf:'High'},
+  {name:'Constrain GIS to Std. Maps',type:'Cost Reduction',cls:'cost',cf:0.08,hf:0.0,effort:'Medium',conf:'Medium'},
+  {name:'Lab/Curation Efficiency Review',type:'Schedule Optimization',cls:'sched',cf:0.05,hf:0.15,effort:'Medium',conf:'Medium'},
+  {name:'Claude for Logistics Savings',type:'Scope Reduction',cls:'scope',cf:0.15,hf:0.18,effort:'Low',conf:'Low'},
+];
+const TYPECLS={'Cost Reduction':'cost','Resource Optimization':'res','Schedule Optimization':'sched','Scope Reduction':'scope','Process':'proc','Custom':'proc'};
+const LVOPTS=v=>['High','Medium','Low'].map(o=>'<option'+(o===v?' selected':'')+'>'+o+'</option>').join('');
+
+let cur=null, actions=[], curNotes='', taskSort='ovr_desc';
+const plistBody=document.getElementById('plistBody'), pdetail=document.getElementById('pdetail');
+const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function getUser(){try{return localStorage.getItem('rb_user')||'';}catch(e){return '';}}
+function saveCurrent(){
+  if(cur==null) return;
+  savePlan(P[cur].id, {actions:actions.map(a=>({...a})), notes:curNotes, ts:Date.now(), by:getUser()});
+}
+
+function renderList(){
+  const pmo=document.getElementById('pmoFilter').value;
+  const pm=document.getElementById('pmFilter').value;
+  const items=P.filter(p=> (!pmo || p.loc===pmo) && (!pm || p.pm===pm)).sort((a,b)=>b.co-a.co);
+  plistBody.innerHTML=items.map(p=>{
+    const i=P.indexOf(p);
+    return `<div class="pitem ${cur===i?'sel':''}" data-i="${i}">
+      <div class="pid">${p.id}</div><div class="pnm" title="${p.name}">${p.name}</div>
+      <div class="prow"><span class="badge ${p.tier}">${TIERLBL[p.tier]}</span></div></div>`;
+  }).join('') || '<div class="placeholder">No matching projects</div>';
+  plistBody.querySelectorAll('.pitem').forEach(el=>el.addEventListener('click',()=>select(+el.dataset.i)));
+}
+
+function defaultActions(p){
+  return TEMPLATES.map((t,idx)=>({id:'t'+idx, name:t.name, type:t.type, cls:t.cls, cost:0, hours:0, effort:t.effort, conf:t.conf, on:false}));
+}
+function loadActions(p){
+  const plan=loadPlan(p.id);
+  if(plan && Array.isArray(plan.actions) && plan.actions.length){
+    actions=plan.actions.map(a=>({...a})); curNotes=plan.notes||'';
+  } else if(plan){ // legacy {on,removed,custom}
+    const removed=plan.removed||[];
+    actions=defaultActions(p).map(a=>({...a, on:(plan.on||[]).includes(a.id)})).filter(a=>!removed.includes(a.id));
+    (plan.custom||[]).forEach((c,k)=>actions.push({id:'c'+k, name:c.name, type:'Custom', cls:'proc', cost:c.cost, hours:c.hours, effort:c.effort||'Medium', conf:c.conf||'Medium', on:true}));
+    curNotes=plan.notes||'';
+  } else { actions=defaultActions(p); curNotes=''; }
+}
+
+function select(i){
+  cur=i; const p=P[i];
+  loadActions(p);
+  renderList();
+  pdetail.innerHTML=detailHTML(p);
+  wireDetail(p);
+  recompute();
+}
+
+function detailHTML(p){
+  const co=p.co, ho=p.ho;
+  return `<div class="dhead">
+    <h1><span class="pid">${p.id}</span> | ${p.name} <span class="badge ${p.tier}">${TIERLBL[p.tier]}</span></h1>
+    <div class="sub">Project Manager: <b style="color:#fff">${p.pm||'—'}</b> &nbsp;·&nbsp; Location: ${p.loc||'—'} &nbsp;·&nbsp; Primary driver: ${p.type==='C'?'Cost':'Hours'}</div>
+  </div>
+  <div id="tabbody" style="margin-top:4px"></div>`;
+}
+
+function recoveryHTML(p){
+  return `<div class="rb">
+    <div class="rbhead" style="grid-column:1 / -1; margin-bottom:0">
+      <div class="htxt">
+        <h3>Build Your Recovery Plan</h3>
+        <div class="hsub">Select actions and enter their estimated cost and hours impact to model recovery.</div>
+      </div>
+    </div>
+    <div style="display:flex; flex-direction:column">
+      <div class="card">
+        <h3>Current State</h3>
+        <div class="stat"><div class="lbl">Cost Overrun</div><div class="val neg">${fmtMoney(-p.co)}</div><div class="sub2 negsub">${pct(p.cv)} over budget</div></div>
+        <div class="stat"><div class="lbl">Hours Overrun</div><div class="val neg">${signNum(p.ho)}</div><div class="sub2 negsub">${pct(p.hv)} over</div></div>
+      </div>
+      <div class="card" style="margin-top:16px; flex:1">
+        <h3>Forecast — No Action</h3>
+        <div class="stat"><div class="lbl">Forecast at Completion</div><div class="val">${fmtMoney(p.fac)}</div><div class="sub2" style="color:var(--muted)">Budget ${fmtMoney(p.bud)}</div></div>
+        <div class="stat"><div class="lbl">Hours at Completion</div><div class="val">${fmtNum(p.hac)}</div><div class="sub2" style="color:var(--muted)">${fmtNum(p.ho)} hrs over</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px">
+        <span style="font-size:12px; font-style:italic; color:var(--muted)">Note: Does not currently save.</span>
+        <button class="addbtn" id="addAction" style="margin-top:0; white-space:nowrap">+ Custom Action</button>
+      </div>
+      <table class="atable"><thead><tr><th></th><th>Action</th><th class="r">Cost Impact</th><th class="r">Hours Impact</th><th class="c">Effort</th><th class="c">Confidence</th><th></th></tr></thead>
+      <tbody id="actbody"></tbody></table>
+      <div class="isum">
+        <div class="cell">
+          <span class="ib blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span>
+          <div><div class="tl">Total Selected Impact</div><div class="bigv" id="sumCost">$0</div><div class="sl">Cost Impact</div></div>
+        </div>
+        <div class="cell">
+          <span class="ib" id="sumHoursIb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+          <div><div class="bigv" id="sumHours">0</div><div class="sl">Hours Impact</div></div>
+        </div>
+        <div class="cell">
+          <span class="ib" id="sumFcIb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span>
+          <div><div class="tl">Est. New Forecast</div><div class="bigv" id="sumFc">—</div><div class="sl" id="sumFcSub"></div></div>
+        </div>
+        <div class="btncell">
+          <!-- Save button temporarily hidden — keep for re-enabling later:
+          <button class="addbtn" id="saveBtn">Save</button>
+          -->
+          <button class="resetbtn" id="resetBtn">Reset to defaults</button>
+        </div>
+      </div>
+      <div class="saved" id="savedMsg"></div>
+    </div>
+    <div class="card">
+      <h3>Impact of Selected Actions</h3>
+      <div class="imphdr"><span>With plan</span><span>Improvement</span></div>
+      <div id="impbody"></div>
+      <div class="notesec">
+        <h3 class="ico"><span class="hico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/></svg></span>Recovery Notes</h3>
+        <textarea id="notes" class="notes sm" placeholder="Context, decisions, owners, target dates, blockers…">${esc(curNotes)}</textarea>
+      </div>
+    </div>
+  </div>
+  ${tasksHTML(p)}`;
+}
+
+function tasksHTML(p){
+  const rows=(window.PROJECT_TASKS||{})[p.id]||[];
+  if(!rows.length){
+    return `<div class="card tbd-card" style="margin-top:16px"><h3 class="ico"><span class="hico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg></span>Task Budget Detail</h3>
+      <div class="tgrp">No task-level detail is available for this project in the latest export.</div></div>`;
+  }
+  return `<div class="card tbd-card" style="margin-top:16px">
+    <div class="thead-row">
+      <h3 class="ico" style="margin:0"><span class="hico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg></span>Task Budget Detail</h3>
+      <div class="tsort"><label for="taskSort">Sort by:</label>
+        <select id="taskSort">
+          <option value="ovr_desc">Overrun (High to Low)</option>
+          <option value="ovr_asc">Overrun (Low to High)</option>
+          <option value="spent_desc">Spent (High to Low)</option>
+          <option value="bud_desc">Budgeted (High to Low)</option>
+          <option value="name_asc">Task name (A–Z)</option>
+        </select>
+      </div>
+    </div>
+    <div class="twrap"><table class="ttable">
+      <thead><tr>
+        <th>Task</th>
+        <th>Budgeted&nbsp;$</th><th>Spent&nbsp;$</th><th>Overrun&nbsp;$&nbsp;/<br>Remaining&nbsp;$</th>
+        <th>Budget&nbsp;hrs</th><th>Actual&nbsp;hrs</th><th>Over&nbsp;hrs</th>
+      </tr></thead>
+      <tbody id="taskbody">${taskRowsHTML(p, taskSort)}</tbody>
+    </table></div>
+    <div class="tfoot">All currency values in USD, inception to date.</div>
+  </div>`;
+}
+
+function sortTasks(rows, key){
+  const a=rows.slice();
+  const c={ovr_desc:(x,y)=>y[3]-x[3], ovr_asc:(x,y)=>x[3]-y[3], spent_desc:(x,y)=>y[2]-x[2], bud_desc:(x,y)=>y[1]-x[1], name_asc:(x,y)=>String(x[0]).localeCompare(String(y[0]))}[key] || ((x,y)=>y[3]-x[3]);
+  return a.sort(c);
+}
+
+function taskRowsHTML(p, key){
+  const rows=sortTasks((window.PROJECT_TASKS||{})[p.id]||[], key);
+  let tb=0,ts=0,to=0,tbh=0,tah=0,toh=0;
+  const body=rows.map(t=>{
+    const nm=t[0], bud=t[1], spent=t[2], ovr=t[3], budH=t[4], actH=t[5], ovrH=t[6];
+    tb+=bud; ts+=spent; to+=ovr; tbh+=budH; tah+=actH; toh+=ovrH;
+    return `<tr>
+      <td class="tnm" title="${esc(nm)}">${esc(nm)}</td>
+      <td class="r">${usd(bud)}</td>
+      <td class="r">${usd(spent)}</td>
+      <td class="r ${(bud-spent)<0?'neg':'pos'}">${(bud-spent)<0?'-'+usd(spent-bud):'+'+usd(bud-spent)}</td>
+      <td class="r">${fmtNum(budH)}</td>
+      <td class="r">${fmtNum(actH)}</td>
+      <td class="r ${ovrH>0?'neg':''}">${ovrH>0?fmtNum(ovrH):'—'}</td>
+    </tr>`;
+  }).join('');
+  const tot=`<tr class="tot">
+      <td class="tnm">Total — ${rows.length} task${rows.length===1?'':'s'}</td>
+      <td class="r">${usd(tb)}</td>
+      <td class="r">${usd(ts)}</td>
+      <td class="r ${(tb-ts)<0?'neg':'pos'}">${(tb-ts)<0?'-'+usd(ts-tb):'+'+usd(tb-ts)}</td>
+      <td class="r">${fmtNum(tbh)}</td>
+      <td class="r">${fmtNum(tah)}</td>
+      <td class="r ${toh>0?'neg':''}">${toh>0?fmtNum(toh):'—'}</td>
+    </tr>`;
+  return body+tot;
+}
+
+function renderTasks(){
+  if(cur==null) return;
+  const el=document.getElementById('taskbody'); if(!el) return;
+  el.innerHTML=taskRowsHTML(P[cur], taskSort);
+}
+
+function renderActions(){
+  document.getElementById('actbody').innerHTML=actions.map(a=>`<tr data-id="${a.id}">
+    <td><input type="checkbox" class="achk" ${a.on?'checked':''}></td>
+    <td><input class="anm aedit" value="${a.name.replace(/"/g,'&quot;')}" title="Click to edit this action"></td>
+    <td class="r"><input class="imp cimp" type="text" inputmode="numeric" placeholder="0" value="${a.cost?fmtNum(a.cost):''}"></td>
+    <td class="r"><input class="imp imph himp" type="text" inputmode="numeric" placeholder="0" value="${a.hours?fmtNum(a.hours):''}"></td>
+    <td class="c"><select class="lvsel effsel lv ${a.effort}">${LVOPTS(a.effort)}</select></td>
+    <td class="c"><select class="lvsel confsel lv ${a.conf}">${LVOPTS(a.conf)}</select></td>
+    <td class="c"><button class="delx" title="Remove this action">&times;</button></td>
+  </tr>`).join('');
+  const body=document.getElementById('actbody');
+  body.querySelectorAll('tr').forEach(tr=>{
+    const id=tr.dataset.id, a=actions.find(x=>x.id===id);
+    tr.querySelector('.achk').addEventListener('change',e=>{a.on=e.target.checked; recompute(); saveCurrent();});
+    const ci=tr.querySelector('.cimp'); ci.addEventListener('input',e=>{a.cost=Math.round(parseFloat(e.target.value.replace(/,/g,''))||0); recompute(); saveCurrent();}); ci.addEventListener('blur',e=>{e.target.value=a.cost?fmtNum(a.cost):'';});
+    const hi=tr.querySelector('.himp'); hi.addEventListener('input',e=>{a.hours=Math.round(parseFloat(e.target.value.replace(/,/g,''))||0); recompute(); saveCurrent();}); hi.addEventListener('blur',e=>{e.target.value=a.hours?fmtNum(a.hours):'';});
+    const nm=tr.querySelector('.aedit'); if(nm) nm.addEventListener('input',e=>{a.name=e.target.value; saveCurrent();});
+    const es=tr.querySelector('.effsel'); es.addEventListener('change',e=>{a.effort=e.target.value; es.className='lvsel effsel lv '+e.target.value; saveCurrent();});
+    const cs=tr.querySelector('.confsel'); cs.addEventListener('change',e=>{a.conf=e.target.value; cs.className='lvsel confsel lv '+e.target.value; saveCurrent();});
+    tr.querySelector('.delx').addEventListener('click',()=>{ actions=actions.filter(x=>x.id!==id); renderActions(); recompute(); saveCurrent(); });
+  });
+}
+
+function recompute(){
+  const p=P[cur];
+  let dc=0,dh=0;
+  actions.forEach(a=>{ if(a.on){ dc+=a.cost; dh+=a.hours; }});
+  const facNew=p.fac+dc, coNew=Math.max(0,p.co+dc), hacNew=p.hac+dh, hoNew=p.ho+dh;
+  const facPct=p.fac? (dc/p.fac*100):0, coPct=p.co? (dc/p.co*100):0;
+  const row=(lbl,val,imp,impcls)=>`<div class="improw"><div><div class="il">${lbl}</div><div class="iv">${val}</div></div><div class="imp2 ${impcls}">${imp}</div></div>`;
+  document.getElementById('impbody').innerHTML=
+    row('Forecast at Completion', fmtMoney(facNew), dc?`${fmtMoney(dc)} (${facPct.toFixed(1)}%)`:'—', dc?'good':'flat')+
+    row('Cost Overrun', fmtMoney(-coNew), dc?`${fmtMoney(-dc)} (${(-coPct).toFixed(1)}%)`:'—', dc?'good':'flat')+
+    row('Hours Overrun', signNum(hoNew), dh?signNum(dh):'—', dh?'good':'flat');
+  const sc=document.getElementById('sumCost');
+  if(sc){
+    sc.textContent=usdSigned(dc);
+    const sh=document.getElementById('sumHours');
+    sh.textContent=signNum(dh);
+    sh.classList.toggle('green', hoNew<=0);
+    document.getElementById('sumHoursIb').classList.toggle('green', hoNew<=0);
+    const sf=document.getElementById('sumFc');
+    sf.textContent=fmtMoney(facNew);
+    sf.classList.toggle('green', facNew<=p.bud);
+    document.getElementById('sumFcIb').classList.toggle('green', facNew<=p.bud);
+    document.getElementById('sumFcSub').textContent='vs. current '+fmtMoney(p.fac);
+  }
+}
+
+function wireDetail(p){
+  const tb=document.getElementById('tabbody');
+  tb.innerHTML=recoveryHTML(p); renderActions(); wireRB(p); recompute();
+}
+
+function wireRB(p){
+  document.getElementById('addAction').addEventListener('click',()=>{
+    actions.push({id:'c'+Date.now(), name:'Custom action', type:'Custom', cls:'proc', cost:0, hours:0, effort:'Medium', conf:'Medium', on:true});
+    renderActions(); recompute(); saveCurrent();
+  });
+  document.getElementById('notes').addEventListener('input',e=>{ curNotes=e.target.value; saveCurrent(); });
+  /* Save button temporarily hidden — keep this handler for re-enabling later:
+  document.getElementById('saveBtn').addEventListener('click',async(e)=>{
+    const btn=e.currentTarget, m=document.getElementById('savedMsg');
+    const setMsg=(t,ms)=>{ if(m){ m.textContent=t; clearTimeout(m._t); m._t=setTimeout(()=>{m.textContent='';},ms||4000); } };
+    btn.disabled=true; if(m) m.textContent='Saving…';
+    const r=await saveShared();
+    btn.disabled=false;
+    if(r==='shared') setMsg('✓ Saved — others will see this when they reopen the dashboard');
+    else if(r==='download') setMsg('✓ Saved here, and recovery_plans.js downloaded — drop it into the shared folder so others see it.',8000);
+    else setMsg('✓ Saved on this device');
+  });
+  */
+  document.getElementById('resetBtn').addEventListener('click',()=>{ if(confirm('Reset this project to the default action list and clear its notes?')){ clearPlan(p.id); select(cur); } });
+  const tsel=document.getElementById('taskSort');
+  if(tsel){ tsel.value=taskSort; tsel.addEventListener('change',e=>{ taskSort=e.target.value; renderTasks(); }); }
+}
+
+// persistence (localStorage working copy)
+function savePlan(id,plan){try{localStorage.setItem('rb_'+id,JSON.stringify(plan));}catch(e){}}
+function loadPlan(id){try{const s=localStorage.getItem('rb_'+id);return s?JSON.parse(s):null;}catch(e){return null;}}
+function clearPlan(id){try{localStorage.removeItem('rb_'+id);}catch(e){}}
+
+// merge the shared recovery_plans.js (if present) into the local working copy, newest wins
+(function mergeShared(){
+  const shared=window.RECOVERY_PLANS||{};
+  for(const id in shared){
+    const local=loadPlan(id);
+    if(!local || ((shared[id]||{}).ts||0) > (local.ts||0)) savePlan(id, shared[id]);
+  }
+})();
+
+function allPlans(){
+  const all={};
+  for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k && k.indexOf('rb_')===0 && k!=='rb_user'){ try{all[k.slice(3)]=JSON.parse(localStorage.getItem(k));}catch(e){} } }
+  return all;
+}
+function exportPlans(){
+  const blob=new Blob(['window.RECOVERY_PLANS='+JSON.stringify(allPlans())+';'],{type:'text/javascript'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='recovery_plans.js';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function importPlans(file){
+  const r=new FileReader();
+  r.onload=()=>{
+    let obj=null, txt=r.result||'';
+    try{ obj=JSON.parse(txt.replace(/^[\s\S]*?window\.RECOVERY_PLANS\s*=\s*/,'').replace(/;\s*$/,'')); }
+    catch(e){ try{ obj=JSON.parse(txt); }catch(e2){ alert('Could not read that plans file.'); return; } }
+    let n=0;
+    for(const id in obj){ const local=loadPlan(id); if(!local || ((obj[id]||{}).ts||0) > (local.ts||0)){ savePlan(id,obj[id]); n++; } }
+    alert('Imported / updated '+n+' plan(s).');
+    select(cur==null?0:cur);
+  };
+  r.readAsText(file);
+}
+
+// ---- shared save: write recovery_plans.js so other users see the edits ----
+// The dashboard loads recovery_plans.js on open and merges it (newest wins), so
+// writing that file is how a change reaches everyone. We write it directly with
+// the File System Access API (one-time file pick, remembered in IndexedDB);
+// if the browser blocks that (e.g. page opened as a local file), we fall back to
+// downloading recovery_plans.js, which is then dropped into the shared folder.
+const SHARED_FILE='recovery_plans.js';
+function sharedContent(){ return 'window.RECOVERY_PLANS='+JSON.stringify(allPlans())+';\n'; }
+function idbOpen(){ return new Promise((res,rej)=>{ const r=indexedDB.open('rb_fs',1); r.onupgradeneeded=()=>r.result.createObjectStore('h'); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+async function idbGet(k){ try{ const db=await idbOpen(); return await new Promise((res,rej)=>{ const t=db.transaction('h','readonly').objectStore('h').get(k); t.onsuccess=()=>res(t.result); t.onerror=()=>rej(t.error); }); }catch(e){ return null; } }
+async function idbSet(k,v){ try{ const db=await idbOpen(); await new Promise((res,rej)=>{ const t=db.transaction('h','readwrite').objectStore('h').put(v,k); t.onsuccess=()=>res(); t.onerror=()=>rej(t.error); }); }catch(e){} }
+async function ensurePerm(h){ if(!h) return false; const o={mode:'readwrite'}; if((await h.queryPermission(o))==='granted') return true; return (await h.requestPermission(o))==='granted'; }
+function parsePlans(txt){
+  if(!txt) return {};
+  try{ return JSON.parse(txt.replace(/^[\s\S]*?window\.RECOVERY_PLANS\s*=\s*/,'').replace(/;\s*$/,'')); }
+  catch(e){ try{ return JSON.parse(txt); }catch(e2){ return {}; } }
+}
+// Merge what's on disk (other people's saves) with our local plans, newest ts
+// wins per project. Any newer disk plan is also adopted into our localStorage so
+// our own view stays current. Returns the union to write back.
+function mergePlans(disk){
+  const local=allPlans(), out={};
+  const ids=new Set([...Object.keys(disk||{}), ...Object.keys(local)]);
+  ids.forEach(id=>{
+    const d=disk?disk[id]:null, l=local[id];
+    const dNewer = d && (!l || (d.ts||0) > (l.ts||0));
+    out[id]= dNewer ? d : (l||d);
+    if(dNewer) savePlan(id,d);
+  });
+  return out;
+}
+async function writeShared(){
+  if(!window.showSaveFilePicker) throw new Error('unsupported');
+  let h=await idbGet('shared');
+  if(h && !(await ensurePerm(h))) h=null;
+  if(!h){
+    h=await window.showSaveFilePicker({suggestedName:SHARED_FILE, types:[{description:'Recovery plans', accept:{'text/javascript':['.js']}}]});
+    if(!(await ensurePerm(h))) throw new Error('denied');
+    await idbSet('shared',h);
+  }
+  // read-merge-write: re-read the file first so a concurrent editor's save to a
+  // different project isn't clobbered; newest ts wins per project.
+  let disk={};
+  try{ const f=await h.getFile(); disk=parsePlans(await f.text()); }catch(e){}
+  const merged=mergePlans(disk);
+  const w=await h.createWritable(); await w.write('window.RECOVERY_PLANS='+JSON.stringify(merged)+';\n'); await w.close();
+}
+function downloadShared(){
+  const blob=new Blob([sharedContent()],{type:'text/javascript'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=SHARED_FILE;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+async function saveShared(){
+  saveCurrent();                       // local working copy first (instant)
+  try{ await writeShared(); return 'shared'; }
+  catch(e){ if(e && e.name==='AbortError') return 'cancel'; downloadShared(); return 'download'; }
+}
+
+// populate PMO filter with the distinct offices present, sorted
+(function(){
+  const locs=[...new Set(P.map(p=>p.loc).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const sel=document.getElementById('pmoFilter');
+  sel.innerHTML='<option value="">All PMOs ('+P.length+')</option>'+locs.map(l=>{
+    const n=P.filter(p=>p.loc===l).length;
+    return `<option value="${l.replace(/"/g,'&quot;')}">${l} (${n})</option>`;
+  }).join('');
+  const psel=document.getElementById('pmFilter');
+  // (re)build the Project Manager list scoped to the selected PMO
+  function populatePMs(){
+    const pmo=sel.value;
+    const scope=P.filter(p=>!pmo || p.loc===pmo);
+    const prev=psel.value;
+    const pms=[...new Set(scope.map(p=>p.pm).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+    psel.innerHTML='<option value="">All Project Managers ('+scope.length+')</option>'+pms.map(m=>{
+      const n=scope.filter(p=>p.pm===m).length;
+      return `<option value="${m.replace(/"/g,'&quot;')}">${m} (${n})</option>`;
+    }).join('');
+    if(prev && pms.includes(prev)) psel.value=prev;  // keep selection if still valid
+  }
+  sel.addEventListener('change',()=>{ populatePMs(); renderList(); });
+  psel.addEventListener('change',renderList);
+  populatePMs();
+})();
+
+// Turn a filter <select> into a pill-button combobox with a searchable menu,
+// matching the PM Hours / Expenses filter control. The hidden <select> stays
+// the source of truth for .value, so renderList() and populatePMs() keep
+// working unchanged; a MutationObserver re-syncs whenever the option list is
+// rebuilt.
+function makeCombo(sel, label, placeholder){
+  const wrap=document.createElement('div'); wrap.className='combo';
+  sel.parentNode.insertBefore(wrap,sel); wrap.appendChild(sel); sel.style.display='none';
+
+  const esc=s=>s.replace(/"/g,'&quot;');
+  const btn=document.createElement('button'); btn.type='button'; btn.className='combo-btn';
+  btn.setAttribute('aria-haspopup','listbox'); btn.setAttribute('aria-expanded','false');
+  btn.innerHTML='<span class="combo-blabel">'+esc(label)+'</span><span class="combo-bval"></span><span class="combo-caret">▾</span>';
+  const bval=btn.querySelector('.combo-bval');
+
+  const menu=document.createElement('div'); menu.className='combo-menu'; menu.hidden=true; menu.setAttribute('role','listbox');
+  const searchWrap=document.createElement('div'); searchWrap.className='combo-search-wrap';
+  const search=document.createElement('input'); search.type='search'; search.className='combo-search'; search.placeholder=placeholder; search.autocomplete='off';
+  searchWrap.appendChild(search); menu.appendChild(searchWrap);
+  const list=document.createElement('div'); list.className='combo-options'; menu.appendChild(list);
+  wrap.appendChild(btn); wrap.appendChild(menu);
+
+  let opts=[], active=-1;
+  const optHtml=o=>`<div class="combo-opt${o.value===sel.value?' cur':''}" role="option" data-v="${esc(o.value)}">${o.label}</div>`;
+  function readOpts(){ opts=[...sel.options].map(o=>({value:o.value,label:o.textContent})); }
+  function syncBtn(){ const v=sel.value; const a=opts.find(o=>o.value===v); bval.textContent = v==='' ? '' : (a?a.label:''); btn.classList.toggle('active', v!==''); }
+  function render(filter){
+    const f=(filter||'').trim().toLowerCase();
+    const all=opts.find(o=>o.value==='');
+    const rest=opts.filter(o=>o.value!=='');
+    const matches=f ? rest.filter(o=>o.label.toLowerCase().includes(f)) : rest;
+    let html=all?optHtml(all):'';
+    html += matches.length ? matches.map(optHtml).join('') : (f?'<div class="combo-empty">No matches</div>':'');
+    list.innerHTML=html||'<div class="combo-empty">No matches</div>';
+    active=-1;
+  }
+  function open(){ readOpts(); render(''); search.value=''; menu.hidden=false; btn.setAttribute('aria-expanded','true'); search.focus(); }
+  function close(){ menu.hidden=true; btn.setAttribute('aria-expanded','false'); }
+  function choose(v){ sel.value=v; syncBtn(); close(); btn.focus(); sel.dispatchEvent(new Event('change',{bubbles:true})); }
+
+  btn.addEventListener('click',()=>{ menu.hidden?open():close(); });
+  search.addEventListener('input',()=>render(search.value));
+  search.addEventListener('keydown',e=>{
+    const items=[...list.querySelectorAll('.combo-opt')];
+    if(e.key==='ArrowDown'){ e.preventDefault(); active=Math.min(active+1,items.length-1); }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); active=Math.max(active-1,0); }
+    else if(e.key==='Enter'){ e.preventDefault(); if(active>=0&&items[active])choose(items[active].dataset.v); else if(items.length===1)choose(items[0].dataset.v); return; }
+    else if(e.key==='Escape'){ close(); btn.focus(); return; }
+    else return;
+    items.forEach((el,i)=>el.classList.toggle('active',i===active));
+    if(items[active])items[active].scrollIntoView({block:'nearest'});
+  });
+  list.addEventListener('mousedown',e=>{ const o=e.target.closest('.combo-opt'); if(o){ e.preventDefault(); choose(o.dataset.v); } });
+  document.addEventListener('mousedown',e=>{ if(!wrap.contains(e.target)) close(); });
+
+  // keep button + menu in sync when the <select> is rebuilt
+  new MutationObserver(()=>{ readOpts(); syncBtn(); if(!menu.hidden) render(search.value); }).observe(sel,{childList:true});
+  readOpts(); syncBtn();
+}
+makeCombo(document.getElementById('pmoFilter'),'PMO','Search PMOs…');
+makeCombo(document.getElementById('pmFilter'),'Project Manager','Search PMs…');
+
+renderList();
+// open the highest cost-overrun project (top of the sorted list) by default
+select(P.reduce((best,p,i)=>p.co>P[best].co?i:best,0));
+</script>
+</body>
+</html>

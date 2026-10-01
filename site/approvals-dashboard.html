@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Approvals Dashboard — Northstar Heritage</title>
+<style>
+  :root{
+    --navy:#211d4e; --navy2:#2b2660; --ink:#1f2233; --muted:#6b7085; --line:#e7e8ef;
+    --bg:#e8eaf1; --card:#ffffff; --purple:#6c5ce7; --purple-l:#c9c2f6; --purple-bg:#efeafe;
+    --green:#12b886; --green-l:#a9e6d2; --green-bg:#e6f8f1; --amber:#f2994a; --amber-bg:#fdf0e4;
+    --blue-bg:#eef4ff; --shadow:0 1px 3px rgba(30,32,60,.06),0 6px 18px rgba(30,32,60,.05);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  .app{display:flex;min-height:100vh}
+  /* sidebar — floating panel (matches other dashboards), purple colorway */
+  .side{position:fixed;top:8px;left:8px;bottom:8px;width:232px;overflow:hidden;padding:26px 16px 18px;display:flex;flex-direction:column;border-radius:20px;color:#332c5c;
+    background:radial-gradient(circle at 50% 24%, rgba(255,255,255,.5), transparent 60%),linear-gradient(180deg,#e4dbf9 0%,#d3c6f3 54%,#bfaeec 100%);
+    border:1px solid rgba(255,255,255,.7);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.9),inset 0 -1px 0 rgba(74,58,192,.14),0 20px 60px rgba(58,45,120,.20),0 40px 100px rgba(58,45,120,.12)}
+  .side::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:.05;background:radial-gradient(circle at 22% 18%, rgba(255,255,255,.9), transparent 30%),radial-gradient(circle at 74% 40%, rgba(74,58,192,.6), transparent 32%),radial-gradient(circle at 38% 80%, rgba(255,255,255,.7), transparent 34%);mix-blend-mode:multiply}
+  .brand{position:relative;display:flex;align-items:center;gap:12px;padding:2px 6px 20px;border-bottom:1px solid rgba(74,58,192,.20)}
+  .brand .mark{width:38px;height:42px;flex:0 0 38px;filter:drop-shadow(0 6px 12px rgba(58,45,120,.32))}
+  .brand .mark svg{width:100%;height:100%;display:block}
+  .brand b{color:#332a72;font-size:15px;letter-spacing:.17em;display:block;line-height:1}
+  .brand span{font-size:9px;letter-spacing:.22em;color:#6f689c;text-transform:uppercase;margin-top:5px;display:block}
+  .nav{position:relative;margin-top:16px;display:flex;flex-direction:column;gap:4px}
+  .nav a{display:flex;align-items:center;gap:11px;padding:11px 13px;border-radius:11px;color:#443c6e;font-weight:600;cursor:pointer;border:1px solid transparent;transition:.15s}
+  .nav a:hover{background:rgba(255,255,255,.55);color:#241f4a}
+  .nav a.active{background:linear-gradient(180deg,#5f4fd8,#4c3ac2);color:#fff;box-shadow:0 10px 22px rgba(60,45,150,.40),inset 0 1px 0 rgba(255,255,255,.28)}
+  .nav a svg{width:17px;height:17px;flex:none}
+  .side .foot{position:relative;margin-top:auto;font-size:12px;color:#6f689c;padding:8px}
+  .side .foot .hub{display:flex;align-items:center;gap:9px;color:#443c6e;padding:10px 12px;border-radius:10px;border:1px solid rgba(74,58,192,.28);background:rgba(255,255,255,.42);margin-top:12px}
+  .side .foot .hub:hover{background:rgba(255,255,255,.7);color:#241f4a}
+  /* main */
+  .main{margin-left:248px;flex:1;padding:26px 30px 22px;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+  .top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap;flex:none}
+  .top h1{margin:0;font-size:23px;font-weight:800;letter-spacing:-.01em}
+  .top .sub{color:var(--muted);margin-top:3px;font-size:13px}
+  .asof{font-size:12.5px;color:var(--muted);background:#fff;border:1px solid var(--line);border-radius:9px;padding:8px 13px;display:flex;align-items:center;gap:7px}
+  /* control strip (filters) — reads as chrome, not a data tile */
+  .toolbar{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:16px;padding:9px 14px;background:rgba(255,255,255,.5);border:1px solid var(--line);border-radius:12px}
+  .tb-seg{display:flex;align-items:center;gap:11px}
+  .tb-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+  .toolbar .seg{width:264px}
+  .tb-filters{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .tb-field{display:flex;align-items:center;gap:8px}
+  .tb-field label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.02em}
+  .tb-field .combo{width:186px;flex:none}
+  /* kpi */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:18px}
+  .kpi{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px 18px;box-shadow:var(--shadow)}
+  .kpi .kbody{flex:1;min-width:0}
+  .kpi .ic{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex:none}
+  .kpi .ic svg{width:20px;height:20px}
+  .kpi .t{font-weight:700;font-size:13.5px;margin-bottom:9px}
+  .kpi .cols{display:flex;justify-content:space-between;gap:10px;padding:0 14px}
+  .kpi .col .n{font-size:22px;font-weight:800;line-height:1;color:var(--ink)}
+  .kpi .col .l{font-size:11px;color:var(--muted);margin-top:6px}.kpi .col:last-child .l{color:#b6b9c6}
+  .ic.exp{background:var(--purple-bg);color:var(--purple)} .ic.ts{background:var(--green-bg);color:var(--green)}
+  .ic.emp{background:var(--blue-bg);color:#3b6fe0} .ic.age{background:var(--amber-bg);color:var(--amber)}
+  .n.exp{color:var(--purple)} .n.ts{color:var(--green)}
+  .kpi.clickable{cursor:pointer;border:1px dashed #aebfcf;transition:transform .15s,box-shadow .15s,background .15s,border-color .15s}.kpi.clickable:hover{background:#f5f8ff;border-color:#8fb4e8;box-shadow:0 6px 16px rgba(60,80,150,.13);transform:translateY(-2px)}.kpi.clickable.active{background:#eef4ff;border-style:solid;border-color:#6c8fe0;box-shadow:0 6px 16px rgba(60,80,150,.18)}
+  .kpi.filt{border:1px dashed #aebfcf} .kpi.filt .kbody{display:flex;flex-direction:column;justify-content:center;gap:9px} .kpi.filt .t{margin-bottom:2px}
+  .seg{display:flex;background:#eef0f6;border-radius:9px;padding:3px;gap:2px} .seg button{flex:1;text-align:center;border:none;background:transparent;font-family:inherit;font-size:12px;font-weight:600;color:var(--muted);padding:5px 6px;border-radius:7px;cursor:pointer} .seg button.on{background:#fff;color:var(--purple);box-shadow:0 1px 2px rgba(30,32,60,.14)}
+  .frow{display:flex;align-items:center;gap:8px} .frow label{font-size:11px;font-weight:700;color:var(--muted);width:70px;flex:none;text-transform:uppercase;letter-spacing:.02em} .frow select{flex:1;min-width:0;padding:6px 9px;border:1px solid var(--line);border-radius:8px;font-family:inherit;font-size:12px;background:#fff;cursor:pointer;color:var(--ink)}
+  .combo{position:relative;flex:1;min-width:0}
+  .combo input{width:100%;padding:6px 26px 6px 9px;border:1px solid var(--line);border-radius:8px;font-family:inherit;font-size:12px;background:#fff;color:var(--ink);cursor:text}
+  .combo input:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px rgba(108,92,231,.12)}
+  .combo::after{content:"";position:absolute;right:10px;top:50%;width:6px;height:6px;border-right:2px solid #9aa0b4;border-bottom:2px solid #9aa0b4;transform:translateY(-72%) rotate(45deg);pointer-events:none;transition:transform .15s}
+  .combo.open::after{transform:translateY(-30%) rotate(-135deg)}
+  .combo-list{position:absolute;right:0;left:auto;top:calc(100% + 4px);z-index:60;min-width:100%;width:max-content;max-width:280px;background:#fff;border:1px solid var(--line);border-radius:9px;box-shadow:0 12px 28px rgba(30,32,60,.18);max-height:236px;overflow:auto;display:none}
+  .combo.open .combo-list{display:block}
+  .co-item{padding:7px 11px;font-size:12px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+  .co-item:hover{background:var(--purple-bg);color:var(--purple)}
+  .co-item.sel{background:var(--purple-bg);color:var(--purple);font-weight:700}
+  .co-none{padding:8px 11px;font-size:12px;color:var(--muted)}
+  /* banner */
+  .banner{background:var(--blue-bg);border:1px solid #d7e4ff;color:#33477a;border-radius:11px;padding:11px 15px;font-size:12.5px;display:flex;gap:9px;align-items:center;margin-bottom:20px}
+  /* cards grid */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:18px 20px;min-width:0}
+  .card h3{margin:0 0 3px;font-size:14.5px;font-weight:700}
+  .card .cs{color:var(--muted);font-size:12px;margin-bottom:14px}
+  .legend{display:flex;gap:16px;font-size:11.5px;color:var(--muted);margin-bottom:12px}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  /* bars */
+  .bars{display:flex;flex-direction:column;gap:13px}
+  .bar-row{display:grid;grid-template-columns:118px 1fr auto;align-items:center;gap:10px}
+  .bar-row.clickable{cursor:pointer;border-radius:8px;transition:background .12s}
+  .bar-row.clickable:hover{background:rgba(108,92,231,.10)}
+  .bar-row.clickable:hover .nm{color:var(--purple)}
+  .bar-row .nm{font-size:12.5px;color:#2a2d40;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .track{height:11px;background:#edeef5;border-radius:999px;overflow:hidden}
+  .seg{height:100%}.fill{position:relative;display:flex;height:100%;border-radius:999px;overflow:hidden;box-shadow:0 1px 2px rgba(60,50,150,.22)}.fill::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,rgba(255,255,255,.30),rgba(255,255,255,0) 48%,rgba(0,0,0,.06));pointer-events:none}.seg+.seg{box-shadow:inset 2px 0 0 rgba(255,255,255,.85)}
+  .bar-row .val{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap;text-align:right}
+  .viewall{display:inline-block;margin-top:14px;color:var(--purple);font-weight:600;font-size:12.5px;cursor:pointer}
+  /* drill-down modal */
+  .modal-ov{position:fixed;inset:0;z-index:200;background:rgba(28,26,54,.44);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;padding:28px}
+  .modal-ov.open{display:flex}
+  .modal{width:min(680px,94vw);max-height:86vh;display:flex;flex-direction:column;background:#fff;border-radius:16px;box-shadow:0 30px 80px rgba(30,32,60,.34);overflow:hidden}
+  .modal-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:18px 22px 14px;border-bottom:1px solid var(--line)}
+  .modal-hd .mtitle{font-size:17px;font-weight:800;color:var(--ink);letter-spacing:-.01em}
+  .modal-hd .msub{font-size:12.5px;color:var(--muted);margin-top:4px}
+  .modal-hd .msub b{color:var(--ink)}
+  .mclose{border:none;background:#f1f2f7;color:var(--muted);width:30px;height:30px;border-radius:8px;font-size:20px;line-height:1;cursor:pointer;flex:none}
+  .mclose:hover{background:#e6e7ef;color:var(--ink)}
+  .modal-bd{overflow:auto;padding:6px 22px 20px}
+  .modal-bd table{width:100%;border-collapse:collapse}
+  .modal-bd .mtot td{font-weight:800;color:var(--ink);border-top:2px solid var(--line)}
+  .viewall.g{color:var(--green)}
+  /* tables */
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.03em;cursor:pointer;user-select:none}
+  td.num,th.num{text-align:right}
+  tbody tr:hover{background:#fafbff}
+  .tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:700}
+  .tag.draft{background:var(--purple-bg);color:var(--purple)} .tag.sub{background:var(--green-bg);color:var(--green)}
+  .scroll{max-height:none;overflow:auto}
+  .card.wide{grid-column:1/-1}
+  .ctrls{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+  .ctrls input,.ctrls select{padding:8px 11px;border:1px solid var(--line);border-radius:8px;font-size:12.5px;font-family:inherit;background:#fff}
+  .ctrls input{min-width:210px}
+  .pill{font-size:11.5px;color:var(--muted);margin-left:auto}
+  .page{display:none;flex:1;min-height:0} .page.on{display:flex;flex-direction:column} #page-expenses.on,#page-timesheets.on{overflow:auto} #page-dashboard .kpis{flex:none} #page-dashboard .grid{flex:1;min-height:0;grid-auto-rows:1fr} #page-dashboard .card{display:flex;flex-direction:column;min-height:0} #page-dashboard .bars,#page-dashboard .card .scroll{flex:1;min-height:0;max-height:none;overflow:auto} #page-dashboard .bars{padding-right:4px}
+  .mini{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+  .mtile{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow)}
+  .mtile .n{font-size:22px;font-weight:800} .mtile .l{font-size:11.5px;color:var(--muted);margin-top:3px}
+  @media(max-width:1050px){.kpis{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.mini{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <div class="mark">
+        <svg viewBox="0 0 38 42" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="hex" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#6a58dd"/><stop offset="1" stop-color="#3f2fae"/>
+            </linearGradient>
+          </defs>
+          <path d="M19 1.4 L35.6 11 V31 L19 40.6 L2.4 31 V11 Z" fill="url(#hex)" stroke="rgba(255,255,255,.55)" stroke-width="1.1"/>
+          <path d="M19 6 L33 14 V30 L19 38 L5 30 V14 Z" fill="none" stroke="rgba(255,255,255,.16)" stroke-width="1"/>
+          <path d="M19 11.5 L21.1 18.9 L28.5 21 L21.1 23.1 L19 30.5 L16.9 23.1 L9.5 21 L16.9 18.9 Z" fill="#fff"/>
+        </svg>
+      </div>
+      <div><b>NORTHSTAR</b><span>Finance Operations</span></div>
+    </div>
+    <nav class="nav">
+      <a data-page="dashboard" class="active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</a>
+    </nav>
+    <div class="foot">
+      <div>Need Help?<br>Contact the Finance Team</div>
+      <a class="hub" href="index.html">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9"/><path d="M9 21V9h6v12"/></svg>Hub</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="top">
+      <div><h1>Approvals Dashboard</h1><div class="sub">Please review and approve or deny submitted items. For draft items, work with employees to complete and submit with receipts.</div></div>
+    </div>
+
+    <!-- ============ DASHBOARD ============ -->
+    <section class="page on" id="page-dashboard">
+      <div class="toolbar">
+        <div class="tb-seg"><span class="tb-label">Show</span><div class="seg" id="typeSeg"><button data-t="both" class="on">Both</button><button data-t="exp">Expenses</button><button data-t="ts">Timesheets</button></div></div>
+        <div class="tb-filters">
+          <div class="tb-field"><label>Supervisor</label><div class="combo" id="supCombo"><input type="text" id="supInput" placeholder="All supervisors" autocomplete="off" spellcheck="false"><div class="combo-list" id="supList"></div></div></div>
+          <div class="tb-field"><label>PMO</label><div class="combo" id="locCombo"><input type="text" id="locInput" placeholder="All PMO" autocomplete="off" spellcheck="false"><div class="combo-list" id="locList"></div></div></div>
+        </div>
+      </div>
+      <div class="kpis" id="kpis"></div>
+      <div class="grid">
+        <div class="card">
+          <h3>Expense Reports by Supervisor</h3><div class="cs">Draft vs Submitted — amount ($)</div>
+          <div class="legend"><span><i style="background:var(--purple)"></i>Draft $</span><span><i style="background:var(--purple-l)"></i>Submitted $</span></div>
+          <div class="bars" id="exp-bars"></div>
+          <span class="viewall" data-page="expenses">View all supervisors →</span>
+        </div>
+        <div class="card">
+          <h3>Expense Reports in Draft Status</h3><div class="cs">Highest-value drafts</div>
+          <div class="scroll"><table id="exp-draft-tbl"></table></div>
+          <span class="viewall" data-page="expenses">View all draft expense reports →</span>
+        </div>
+        <div class="card">
+          <h3>Timesheets by Supervisor</h3><div class="cs">Draft vs Submitted — count</div>
+          <div class="legend"><span><i style="background:var(--green)"></i>Draft</span><span><i style="background:var(--green-l)"></i>Submitted</span></div>
+          <div class="bars" id="ts-bars"></div>
+          <span class="viewall g" data-page="timesheets">View all supervisors →</span>
+        </div>
+        <div class="card">
+          <h3>Timesheets in Draft Status</h3><div class="cs">Pending draft timesheets</div>
+          <div class="scroll"><table id="ts-draft-tbl"></table></div>
+          <span class="viewall g" data-page="timesheets">View all draft timesheets →</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ EXPENSE REPORTS ============ -->
+    <section class="page" id="page-expenses">
+      <div class="mini" id="exp-mini"></div>
+      <div class="card wide" style="margin-bottom:18px">
+        <h3>By Supervisor — all</h3><div class="cs">Draft &amp; Submitted counts and amounts</div>
+        <div class="scroll"><table id="exp-sup-tbl"></table></div>
+      </div>
+      <div class="card wide">
+        <h3>All Draft &amp; Submitted Expense Reports</h3><div class="cs">Full detail — filter and sort</div>
+        <div class="ctrls">
+          <input id="exp-q" placeholder="Search employee, supervisor, report #, reason…">
+          <select id="exp-state"><option value="">All states</option><option>Draft</option><option>Submitted</option></select>
+          <span class="pill" id="exp-count"></span>
+        </div>
+        <div class="scroll"><table id="exp-tbl"></table></div>
+      </div>
+    </section>
+
+    <!-- ============ TIMESHEETS ============ -->
+    <section class="page" id="page-timesheets">
+      <div class="mini" id="ts-mini"></div>
+      <div class="card wide" style="margin-bottom:18px">
+        <h3>By Supervisor — all</h3><div class="cs">Draft &amp; Submitted counts</div>
+        <div class="scroll"><table id="ts-sup-tbl"></table></div>
+      </div>
+      <div class="card wide">
+        <h3>All Draft &amp; Submitted Timesheets</h3><div class="cs">Full detail — filter and sort</div>
+        <div class="ctrls">
+          <input id="ts-q" placeholder="Search employee, supervisor…">
+          <select id="ts-state"><option value="">All states</option><option>Draft</option><option>Submitted</option></select>
+          <span class="pill" id="ts-count"></span>
+        </div>
+        <div class="scroll"><table id="ts-tbl"></table></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="modal-ov" id="modalOv">
+  <div class="modal">
+    <div class="modal-hd">
+      <div><div class="mtitle" id="mTitle"></div><div class="msub" id="mSub"></div></div>
+      <button class="mclose" id="mClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-bd"><table id="mTable"></table></div>
+  </div>
+</div>
+
+<script>
+const DASH = {"as_of": "2026-09-26", "min_days_outstanding": 10, "outstanding_before": "2026-09-16", "age_basis": {"timesheets": "gl", "expenses": "gl"}, "expenses": {"draft": 43, "submitted": 79, "total": 122, "total_amount": 77986.54, "avg_age": 54.6, "by_supervisor": [{"supervisor": "Cabrera, Kathleen", "draft_n": 4, "sub_n": 7, "draft_amt": 3298.95, "sub_amt": 2631.25, "total_n": 11, "total_amt": 5930.2}, {"supervisor": "Suarez, Bruce", "draft_n": 1, "sub_n": 9, "draft_amt": 291.53, "sub_amt": 4779.2, "total_n": 10, "total_amt": 5070.73}, {"supervisor": "Ballard, Duane", "draft_n": 3, "sub_n": 7, "draft_amt": 1385.59, "sub_amt": 5012.69, "total_n": 10, "total_amt": 6398.28}, {"supervisor": "Mann, Bryan", "draft_n": 3, "sub_n": 7, "draft_amt": 2801.35, "sub_amt": 4205.61, "total_n": 10, "total_amt": 7006.96}, {"supervisor": "Cervantes, Angelica", "draft_n": 5, "sub_n": 4, "draft_amt": 5323.31, "sub_amt": 2688.54, "total_n": 9, "total_amt": 8011.85}, {"supervisor": "Cooke, Jean", "draft_n": 6, "sub_n": 2, "draft_amt": 4004.87, "sub_amt": 547.81, "total_n": 8, "total_amt": 4552.68}, {"supervisor": "Jennings, Sean", "draft_n": 3, "sub_n": 4, "draft_amt": 2073.94, "sub_amt": 3895.27, "total_n": 7, "total_amt": 5969.21}, {"supervisor": "Zavala, Seth", "draft_n": 3, "sub_n": 3, "draft_amt": 2295.77, "sub_amt": 2490.66, "total_n": 6, "total_amt": 4786.43}, {"supervisor": "Pineda, Megan", "draft_n": 3, "sub_n": 3, "draft_amt": 1713.6, "sub_amt": 2587.56, "total_n": 6, "total_amt": 4301.16}, {"supervisor": "Delacruz, Glen", "draft_n": 1, "sub_n": 4, "draft_amt": 438.94, "sub_amt": 1643.64, "total_n": 5, "total_amt": 2082.58}, {"supervisor": "Vargas, Reginald", "draft_n": 1, "sub_n": 4, "draft_amt": 778.5, "sub_amt": 568.36, "total_n": 5, "total_amt": 1346.86}, {"supervisor": "Spence, Tonya", "draft_n": 1, "sub_n": 4, "draft_amt": 1049.77, "sub_amt": 1161.69, "total_n": 5, "total_amt": 2211.46}, {"supervisor": "Gillespie, Kiara", "draft_n": 1, "sub_n": 3, "draft_amt": 532.43, "sub_amt": 1611.93, "total_n": 4, "total_amt": 2144.36}, {"supervisor": "Wang, Jody", "draft_n": 3, "sub_n": 1, "draft_amt": 1204.19, "sub_amt": 1127.43, "total_n": 4, "total_amt": 2331.62}, {"supervisor": "Maynard, Kyle", "draft_n": 0, "sub_n": 3, "draft_amt": 0.0, "sub_amt": 1305.53, "total_n": 3, "total_amt": 1305.53}, {"supervisor": "Sparks, Charlene", "draft_n": 2, "sub_n": 1, "draft_amt": 2048.77, "sub_amt": 646.25, "total_n": 3, "total_amt": 2695.02}, {"supervisor": "Riddle, Jeanette", "draft_n": 0, "sub_n": 3, "draft_amt": 0.0, "sub_amt": 2742.63, "total_n": 3, "total_amt": 2742.63}, {"supervisor": "Melton, Briana", "draft_n": 0, "sub_n": 3, "draft_amt": 0.0, "sub_amt": 2330.04, "total_n": 3, "total_amt": 2330.04}, {"supervisor": "Pennington, Priscilla", "draft_n": 1, "sub_n": 1, "draft_amt": 556.79, "sub_amt": 1178.75, "total_n": 2, "total_amt": 1735.54}, {"supervisor": "Huff, Louis", "draft_n": 0, "sub_n": 2, "draft_amt": 0.0, "sub_amt": 1123.81, "total_n": 2, "total_amt": 1123.81}, {"supervisor": "Chaney, Harold", "draft_n": 1, "sub_n": 1, "draft_amt": 385.17, "sub_amt": 403.77, "total_n": 2, "total_amt": 788.94}, {"supervisor": "Holden, Joann", "draft_n": 1, "sub_n": 1, "draft_amt": 418.09, "sub_amt": 534.74, "total_n": 2, "total_amt": 952.83}, {"supervisor": "Barajas, Carl", "draft_n": 0, "sub_n": 1, "draft_amt": 0.0, "sub_amt": 1930.49, "total_n": 1, "total_amt": 1930.49}, {"supervisor": "Lloyd, Sherry", "draft_n": 0, "sub_n": 1, "draft_amt": 0.0, "sub_amt": 237.33, "total_n": 1, "total_amt": 237.33}], "details": [{"er": "EXP022537", "employee": "Hooper, Philip", "supervisor": "Maynard, Kyle", "state": "Submitted", "amount": 314.79, "date_filed": "2026-09-15", "gl": "2026-09-15", "reason": "Mileage - 09/10/26", "last_modified": "2026-09-23", "location": "Maritime", "not_employed": false}, {"er": "EXP022692", "employee": "Cisneros, Marvin", "supervisor": "Zavala, Seth", "state": "Submitted", "amount": 393.66, "date_filed": "2026-09-15", "gl": "2026-09-15", "reason": "Per Diem - 09/10/26 -> 09/11/26", "last_modified": "2026-09-28", "location": "Meridian Central", "not_employed": false}, {"er": "EXP021681", "employee": "Newman, Javier", "supervisor": "Suarez, Bruce", "state": "Submitted", "amount": 893.56, "date_filed": "2026-09-14", "gl": "2026-09-15", "reason": "Per Diem - 09/02/26 -> 09/05/26 & Mileage", "last_modified": "2026-09-17", "location": "Red Rock", "not_employed": false}, {"er": "EXP021534", "employee": "Schmitt, Sophia", "supervisor": "Pineda, Megan", "state": "Draft", "amount": 609.02, "date_filed": "2026-09-13", "gl": "2026-09-14", "reason": "Corp Card 9/9/26", "last_modified": "2026-09-17", "location": "Piedmont", "not_employed": false}, {"er": "EXP022149", "employee": "Foley, Tyrone", "supervisor": "Ballard, Duane", "state": "Submitted", "amount": 624.57, "date_filed": "2026-09-13", "gl": "2026-09-15", "reason": "Per Diem - 09/01/26 -> 09/04/26", "last_modified": "2026-09-23", "location": "Coastal Bend", "not_employed": false}, {"er": "EXP020559", "employee": "Mahoney, Ariel", "supervisor": "Mann, Bryan", "state": "Draft", "amount": 806.19, "date_filed": "2026-09-12", "gl": "2026-09-13", "reason": "Mileage - 09/01/26 -> 09/05/26 & Per Diem", "last_modified": "2026-09-26", "location": "Chesapeake", "not_employed": false}, {"er": "EXP022438", "employee": "Maynard, Ethan", "supervisor": "Sparks, Charlene", "state": "Draft", "amount": 1478.16, "date_filed": "2026-09-11", "gl": "2026-09-14", "reason": "Corp Card 9/2/26 - 9/4/26", "last_modified": "2026-09-12", "location": "Paleontology", "not_employed": false}, {"er": "EXP020982", "employee": "Beard, Joshua", "supervisor": "Jennings, Sean", "state": "Draft", "amount": 1243.73, "date_filed": "2026-09-10", "gl": "2026-09-10", "reason": "Corp Card 8/26/26 - 8/29/26", "last_modified": "2026-09-28", "location": "Gulf Coast", "not_employed": false}, {"er": "EXP021719", "employee": "Herring, Yesenia", "supervisor": "Suarez, Bruce", "state": "Submitted", "amount": 354.72, "date_filed": "2026-09-10", "gl": "2026-09-11", "reason": "Corp Card 8/25/26 - 8/26/26", "last_modified": "2026-09-27", "location": "Red Rock", "not_employed": false}, {"er": "EXP022785", "employee": "Aguirre, Mackenzie", "supervisor": "Jennings, Sean", "state": "Draft", "amount": 83.64, "date_filed": "2026-09-10", "gl": "2026-09-13", "reason": "Per Diem - 08/29/26", "last_modified": "2026-09-10", "location": "Gulf Coast", "not_employed": true}, {"er": "EXP022426", "employee": "Pollard, Arthur", "supervisor": "Cabrera, Kathleen", "state": "Submitted", "amount": 203.17, "date_filed": "2026-09-09", "gl": "2026-09-09", "reason": "Per Diem - 08/26/26", "last_modified": "2026-09-21", "location": "Built Environment", "not_employed": false}, {"er": "EXP020391", "employee": "Greer, Alfred", "supervisor": "Cooke, Jean", "state": "Draft", "amount": 135.54, "date_filed": "2026-09-08", "gl": "2026-09-09", "reason": "Corp Card 9/3/26", "last_modified": "2026-09-24", "location": "Cascade", "not_employed": false}, {"er": "EXP021720", "employee": "Herring, Yesenia", "supervisor": "Suarez, Bruce", "state": "Submitted", "amount": 1223.01, "date_filed": "2026-09-08", "gl": "2026-09-10", "reason": "Per Diem - 09/01/26 -> 09/05/26", "last_modified": "2026-09-24", "location": "Red Rock", "not_employed": false}, {"er": "EXP022600", "employee": "Mays, Alvin", "supervisor": "Pennington, Priscilla", "state": "Draft", "amount": 556.79, "date_filed": "2026-09-08", "gl": "2026-09-08", "reason": "Per Diem - 09/04/26 -> 09/05/26", "last_modified": "2026-09-18", "location": "L8190", "not_employed": false}, {"er": "EXP020171", "employee": "Tate, Juan", "supervisor": "Gillespie, Kiara", "state": "Submitted", "amount": 612.83, "date_filed": "2026-09-07", "gl": "2026-09-07", "reason": "Corp Card 8/26/26", "last_modified": "2026-09-20", "location": "Bluegrass", "not_employed": false}, {"er": "EXP020850", "employee": "Brandt, Doris", "supervisor": "Cervantes, Angelica", "state": "Draft", "amount": 1616.29, "date_filed": "2026-09-07", "gl": "2026-09-09", "reason": "Mileage - 09/01/26 -> 09/05/26", "last_modified": "2026-09-11", "location": "Great Lakes", "not_employed": false}, {"er": "EXP021338", "employee": "Benson, Lucas", "supervisor": "Riddle, Jeanette", "state": "Submitted", "amount": 1173.77, "date_filed": "2026-09-07", "gl": "2026-09-08", "reason": "Corp Card 9/1/26 - 9/5/26", "last_modified": "2026-09-07", "location": "Lakeshore", "not_employed": false}, {"er": "EXP022355", "employee": "Holloway, Melody", "supervisor": "Cabrera, Kathleen", "state": "Submitted", "amount": 981.16, "date_filed": "2026-09-07", "gl": "2026-09-10", "reason": "Per Diem - 08/26/26 -> 08/28/26", "last_modified": "2026-09-13", "location": "Built Environment", "not_employed": false}, {"er": "EXP020275", "employee": "Owens, Troy", "supervisor": "Cooke, Jean", "state": "Submitted", "amount": 395.77, "date_filed": "2026-09-06", "gl": "2026-09-06", "reason": "Mileage - 08/26/26 -> 08/28/26 & Per Diem", "last_modified": "2026-09-06", "location": "Cascade", "not_employed": false}, {"er": "EXP020520", "employee": "Oconnor, Jason", "supervisor": "Mann, Bryan", "state": "Submitted", "amount": 880.75, "date_filed": "2026-09-06", "gl": "2026-09-06", "reason": "Corp Card 9/1/26 - 9/4/26", "last_modified": "2026-09-25", "location": "Chesapeake", "not_employed": false}, {"er": "EXP021492", "employee": "Mathis, Sean", "supervisor": "Pineda, Megan", "state": "Submitted", "amount": 199.8, "date_filed": "2026-09-06", "gl": "2026-09-06", "reason": "Corp Card 9/3/26", "last_modified": "2026-09-14", "location": "Piedmont", "not_employed": false}, {"er": "EXP021920", "employee": "Mathis, Benjamin", "supervisor": "Huff, Louis", "state": "Submitted", "amount": 861.55, "date_filed": "2026-09-06", "gl": "2026-09-07", "reason": "Per Diem - 08/26/26 -> 08/29/26", "last_modified": "2026-09-13", "location": "Sierra", "not_employed": false}, {"er": "EXP022110", "employee": "Rubio, Steve", "supervisor": "Ballard, Duane", "state": "Submitted", "amount": 812.44, "date_filed": "2026-09-06", "gl": "2026-09-09", "reason": "Corp Card 8/28/26", "last_modified": "2026-09-16", "location": "Coastal Bend", "not_employed": false}, {"er": "EXP022599", "employee": "Mays, Alvin", "supervisor": "Pennington, Priscilla", "state": "Submitted", "amount": 1178.75, "date_filed": "2026-09-06", "gl": "2026-09-08", "reason": "Per Diem - 08/25/26 -> 08/28/26", "last_modified": "2026-09-14", "location": "L8190", "not_employed": false}, {"er": "EXP022669", "employee": "Chung, Kyle", "supervisor": "Zavala, Seth", "state": "Draft", "amount": 877.33, "date_filed": "2026-09-06", "gl": "2026-09-07", "reason": "Corp Card 8/26/26 - 8/28/26", "last_modified": "2026-09-20", "location": "Meridian Central", "not_employed": false}, {"er": "EXP021537", "employee": "Obrien, Collin", "supervisor": "Pineda, Megan", "state": "Submitted", "amount": 1054.61, "date_filed": "2026-09-05", "gl": "2026-09-05", "reason": "Corp Card 8/25/26 - 8/26/26", "last_modified": "2026-09-18", "location": "Piedmont", "not_employed": false}, {"er": "EXP022476", "employee": "Delgado, Travis", "supervisor": "Sparks, Charlene", "state": "Draft", "amount": 570.61, "date_filed": "2026-09-04", "gl": "2026-09-04", "reason": "Mileage - 08/25/26 -> 08/29/26", "last_modified": "2026-09-11", "location": "Paleontology", "not_employed": false}, {"er": "EXP021127", "employee": "Obrien, Sean", "supervisor": "Wang, Jody", "state": "Draft", "amount": 275.75, "date_filed": "2026-09-03", "gl": "2026-09-04", "reason": "Per Diem - 08/19/26", "last_modified": "2026-09-12", "location": "High Desert", "not_employed": false}, {"er": "EXP021458", "employee": "Lucero, Joyce", "supervisor": "Delacruz, Glen", "state": "Submitted", "amount": 62.67, "date_filed": "2026-09-03", "gl": "2026-09-03", "reason": "Mileage - 08/26/26", "last_modified": "2026-09-04", "location": "Hill Country", "not_employed": false}, {"er": "EXP020058", "employee": "Rollins, Paige", "supervisor": "Barajas, Carl", "state": "Submitted", "amount": 1930.49, "date_filed": "2026-09-02", "gl": "2026-09-03", "reason": "Corp Card 8/26/26 - 8/29/26", "last_modified": "2026-09-11", "location": "Big Sky", "not_employed": false}, {"er": "EXP020263", "employee": "Huber, Whitney", "supervisor": "Cooke, Jean", "state": "Draft", "amount": 1022.43, "date_filed": "2026-09-02", "gl": "2026-09-05", "reason": "Per Diem - 08/20/26 -> 08/21/26 & Mileage", "last_modified": "2026-09-10", "location": "Cascade", "not_employed": false}, {"er": "EXP020302", "employee": "Spence, Jeff", "supervisor": "Cooke, Jean", "state": "Draft", "amount": 1393.99, "date_filed": "2026-09-02", "gl": "2026-09-04", "reason": "Corp Card 8/18/26 - 8/21/26", "last_modified": "2026-09-11", "location": "Cascade", "not_employed": false}, {"er": "EXP020551", "employee": "Pitts, Cesar", "supervisor": "Mann, Bryan", "state": "Submitted", "amount": 1647.05, "date_filed": "2026-09-02", "gl": "2026-09-04", "reason": "Corp Card 8/21/26 - 8/22/26", "last_modified": "2026-09-22", "location": "Chesapeake", "not_employed": false}, {"er": "EXP022739", "employee": "Gay, Alan", "supervisor": "Chaney, Harold", "state": "Submitted", "amount": 403.77, "date_filed": "2026-09-02", "gl": "2026-09-02", "reason": "Corp Card 8/18/26 - 8/19/26", "last_modified": "2026-09-07", "location": "L8210", "not_employed": false}, {"er": "EXP020129", "employee": "Boyer, Edgar", "supervisor": "Gillespie, Kiara", "state": "Submitted", "amount": 923.71, "date_filed": "2026-09-01", "gl": "2026-09-04", "reason": "Corp Card 8/26/26", "last_modified": "2026-09-10", "location": "Bluegrass", "not_employed": false}, {"er": "EXP020156", "employee": "Faulkner, Chris", "supervisor": "Gillespie, Kiara", "state": "Submitted", "amount": 75.39, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Mileage - 08/29/26", "last_modified": "2026-09-11", "location": "Bluegrass", "not_employed": false}, {"er": "EXP020168", "employee": "Tate, Juan", "supervisor": "Gillespie, Kiara", "state": "Draft", "amount": 532.43, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Corp Card 7/24/26", "last_modified": "2026-08-02", "location": "Bluegrass", "not_employed": false}, {"er": "EXP020279", "employee": "Mendez, Roberto", "supervisor": "Cooke, Jean", "state": "Draft", "amount": 740.71, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Corp Card 2/4/26 - 2/6/26", "last_modified": "2026-03-02", "location": "Cascade", "not_employed": false}, {"er": "EXP020295", "employee": "Pearson, Sophia", "supervisor": "Cooke, Jean", "state": "Draft", "amount": 325.76, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Per Diem - 03/12/26", "last_modified": "2026-04-05", "location": "Cascade", "not_employed": false}, {"er": "EXP020311", "employee": "Gay, Cassidy", "supervisor": "Cooke, Jean", "state": "Draft", "amount": 386.44, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Per Diem - 01/21/26 -> 01/23/26 & Mileage", "last_modified": "2026-02-06", "location": "Cascade", "not_employed": false}, {"er": "EXP020445", "employee": "Shepherd, Catherine", "supervisor": "Mann, Bryan", "state": "Submitted", "amount": 526.08, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Mileage - 02/24/26 -> 02/27/26", "last_modified": "2026-03-10", "location": "Chesapeake", "not_employed": false}, {"er": "EXP020462", "employee": "Nielsen, Ariel", "supervisor": "Mann, Bryan", "state": "Draft", "amount": 1705.2, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Per Diem - 05/27/26 -> 05/30/26", "last_modified": "2026-06-16", "location": "Chesapeake", "not_employed": false}, {"er": "EXP020466", "employee": "Blevins, Claire", "supervisor": "Mann, Bryan", "state": "Submitted", "amount": 689.57, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Corp Card 1/16/26", "last_modified": "2026-01-26", "location": "Chesapeake", "not_employed": false}, {"er": "EXP020489", "employee": "Cantrell, Sylvia", "supervisor": "Mann, Bryan", "state": "Submitted", "amount": 212.75, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Per Diem - 02/03/26 -> 02/06/26 & Mileage", "last_modified": "2026-02-28", "location": "Chesapeake", "not_employed": false}, {"er": "EXP020501", "employee": "Kerr, Sandy", "supervisor": "Mann, Bryan", "state": "Draft", "amount": 289.96, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Corp Card 2/3/26 - 2/5/26", "last_modified": "2026-02-21", "location": "Chesapeake", "not_employed": false}, {"er": "EXP020507", "employee": "Kerr, Sandy", "supervisor": "Mann, Bryan", "state": "Submitted", "amount": 74.75, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Mileage - 06/18/26", "last_modified": "2026-07-19", "location": "Chesapeake", "not_employed": false}, {"er": "EXP020596", "employee": "Tate, Kerry", "supervisor": "Vargas, Reginald", "state": "Submitted", "amount": 88.43, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Corp Card 12/31/25", "last_modified": "2026-01-16", "location": "Front Range", "not_employed": false}, {"er": "EXP020615", "employee": "Esparza, Connor", "supervisor": "Vargas, Reginald", "state": "Submitted", "amount": 371.25, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Per Diem - 03/11/26 -> 03/14/26", "last_modified": "2026-03-19", "location": "Front Range", "not_employed": false}, {"er": "EXP020765", "employee": "Fernandez, Geoffrey", "supervisor": "Cervantes, Angelica", "state": "Submitted", "amount": 168.9, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Mileage - 12/30/25 -> 12/31/25 & Per Diem", "last_modified": "2026-01-23", "location": "Great Lakes", "not_employed": false}, {"er": "EXP020853", "employee": "Salas, Monica", "supervisor": "Cervantes, Angelica", "state": "Draft", "amount": 1645.63, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Mileage - 04/01/26 -> 04/03/26", "last_modified": "2026-05-05", "location": "Great Lakes", "not_employed": false}, {"er": "EXP020901", "employee": "Beltran, Gina", "supervisor": "Cervantes, Angelica", "state": "Submitted", "amount": 1083.59, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Per Diem - 02/19/26 -> 02/21/26", "last_modified": "2026-03-18", "location": "Great Lakes", "not_employed": false}, {"er": "EXP020968", "employee": "Solomon, Gene", "supervisor": "Jennings, Sean", "state": "Submitted", "amount": 551.98, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Per Diem - 06/10/26 -> 06/13/26 & Mileage", "last_modified": "2026-07-12", "location": "Gulf Coast", "not_employed": false}, {"er": "EXP021061", "employee": "Sutton, Jeffery", "supervisor": "Jennings, Sean", "state": "Draft", "amount": 746.57, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Corp Card 8/19/26", "last_modified": "2026-09-08", "location": "Gulf Coast", "not_employed": false}, {"er": "EXP021140", "employee": "Carney, Walter", "supervisor": "Wang, Jody", "state": "Draft", "amount": 482.95, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Corp Card 8/21/26 - 8/22/26", "last_modified": "2026-09-04", "location": "High Desert", "not_employed": false}, {"er": "EXP021352", "employee": "Esparza, Candace", "supervisor": "Riddle, Jeanette", "state": "Submitted", "amount": 529.61, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Corp Card 3/11/26 - 3/13/26", "last_modified": "2026-03-29", "location": "Lakeshore", "not_employed": false}, {"er": "EXP021365", "employee": "Delacruz, Glen", "supervisor": "Holden, Joann", "state": "Draft", "amount": 418.09, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Corp Card 7/30/26 - 8/1/26", "last_modified": "2026-09-01", "location": "Hill Country", "not_employed": false}, {"er": "EXP021413", "employee": "Wilkerson, Samuel", "supervisor": "Delacruz, Glen", "state": "Submitted", "amount": 954.15, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Corp Card 6/30/26 - 7/3/26", "last_modified": "2026-07-19", "location": "Hill Country", "not_employed": false}, {"er": "EXP021414", "employee": "Wilkerson, Samuel", "supervisor": "Delacruz, Glen", "state": "Submitted", "amount": 274.39, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Corp Card 7/28/26 - 7/30/26", "last_modified": "2026-08-10", "location": "Hill Country", "not_employed": false}, {"er": "EXP021636", "employee": "Hardin, Mathew", "supervisor": "Suarez, Bruce", "state": "Submitted", "amount": 746.37, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Mileage - 01/07/26 & Per Diem", "last_modified": "2026-01-25", "location": "Red Rock", "not_employed": false}, {"er": "EXP021779", "employee": "Lutz, Brendan", "supervisor": "Suarez, Bruce", "state": "Submitted", "amount": 272.29, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Corp Card 8/4/26", "last_modified": "2026-08-28", "location": "Red Rock", "not_employed": false}, {"er": "EXP021804", "employee": "Chung, Jeanette", "supervisor": "Suarez, Bruce", "state": "Draft", "amount": 291.53, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Corp Card 6/30/26 - 7/2/26", "last_modified": "2026-07-18", "location": "Red Rock", "not_employed": false}, {"er": "EXP021815", "employee": "Aguirre, Tina", "supervisor": "Suarez, Bruce", "state": "Submitted", "amount": 251.98, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Per Diem - 08/18/26 -> 08/19/26 & Mileage", "last_modified": "2026-09-06", "location": "Red Rock", "not_employed": false}, {"er": "EXP021830", "employee": "Stein, Tracy", "supervisor": "Suarez, Bruce", "state": "Submitted", "amount": 241.66, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Corp Card 2/17/26", "last_modified": "2026-03-07", "location": "Red Rock", "not_employed": false}, {"er": "EXP021908", "employee": "Mcguire, Terri", "supervisor": "Suarez, Bruce", "state": "Submitted", "amount": 31.57, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Mileage - 08/11/26", "last_modified": "2026-09-03", "location": "Red Rock", "not_employed": false}, {"er": "EXP021978", "employee": "Poole, Angelica", "supervisor": "Huff, Louis", "state": "Submitted", "amount": 262.26, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Corp Card 2/27/26", "last_modified": "2026-03-12", "location": "Sierra", "not_employed": false}, {"er": "EXP022197", "employee": "Solomon, Ellen", "supervisor": "Ballard, Duane", "state": "Submitted", "amount": 166.51, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Per Diem - 08/19/26 -> 08/21/26", "last_modified": "2026-08-30", "location": "Coastal Bend", "not_employed": false}, {"er": "EXP022259", "employee": "Lucero, Carlos", "supervisor": "Ballard, Duane", "state": "Submitted", "amount": 590.73, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Mileage - 07/10/26 -> 07/11/26 & Per Diem", "last_modified": "2026-08-11", "location": "Coastal Bend", "not_employed": false}, {"er": "EXP022354", "employee": "Holloway, Melody", "supervisor": "Cabrera, Kathleen", "state": "Submitted", "amount": 246.5, "date_filed": "2026-09-01", "gl": "2026-09-04", "reason": "Per Diem - 08/19/26 -> 08/20/26", "last_modified": "2026-09-10", "location": "Built Environment", "not_employed": false}, {"er": "EXP022359", "employee": "Beltran, Kristin", "supervisor": "Cabrera, Kathleen", "state": "Draft", "amount": 1138.83, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Corp Card 2/10/26 - 2/13/26", "last_modified": "2026-02-27", "location": "Built Environment", "not_employed": false}, {"er": "EXP022364", "employee": "Beltran, Kristin", "supervisor": "Cabrera, Kathleen", "state": "Draft", "amount": 1274.53, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Corp Card 5/13/26 - 5/15/26", "last_modified": "2026-06-03", "location": "Built Environment", "not_employed": false}, {"er": "EXP022381", "employee": "Delgado, Alisha", "supervisor": "Cabrera, Kathleen", "state": "Submitted", "amount": 136.13, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Corp Card 6/17/26", "last_modified": "2026-07-15", "location": "Built Environment", "not_employed": false}, {"er": "EXP022404", "employee": "Sutton, Jeffrey", "supervisor": "Cabrera, Kathleen", "state": "Draft", "amount": 272.78, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Mileage - 08/20/26 -> 08/21/26", "last_modified": "2026-08-28", "location": "Built Environment", "not_employed": false}, {"er": "EXP022454", "employee": "Erickson, Ricardo", "supervisor": "Sparks, Charlene", "state": "Submitted", "amount": 646.25, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Corp Card 1/9/26", "last_modified": "2026-01-27", "location": "Paleontology", "not_employed": false}, {"er": "EXP022530", "employee": "Hooper, Philip", "supervisor": "Maynard, Kyle", "state": "Submitted", "amount": 441.83, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Corp Card 1/6/26", "last_modified": "2026-02-01", "location": "Maritime", "not_employed": false}, {"er": "EXP022651", "employee": "Shea, Mathew", "supervisor": "Zavala, Seth", "state": "Submitted", "amount": 483.62, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Corp Card 8/20/26 - 8/21/26", "last_modified": "2026-09-03", "location": "Meridian Central", "not_employed": false}, {"er": "EXP022684", "employee": "Cisneros, Marvin", "supervisor": "Zavala, Seth", "state": "Draft", "amount": 945.87, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Corp Card 6/2/26 - 6/5/26", "last_modified": "2026-06-15", "location": "Meridian Central", "not_employed": false}, {"er": "EXP022783", "employee": "Aguirre, Mackenzie", "supervisor": "Jennings, Sean", "state": "Submitted", "amount": 1633.18, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Corp Card 5/6/26 - 5/9/26", "last_modified": "2026-05-28", "location": "Gulf Coast", "not_employed": true}, {"er": "EXP022820", "employee": "Cervantes, Julia", "supervisor": "Melton, Briana", "state": "Submitted", "amount": 377.19, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Per Diem - 02/24/26 -> 02/26/26 & Mileage", "last_modified": "2026-03-15", "location": "Island", "not_employed": true}, {"er": "EXP022885", "employee": "Holden, Doris", "supervisor": "Spence, Tonya", "state": "Draft", "amount": 1049.77, "date_filed": "2026-09-01", "gl": "2026-09-01", "reason": "Corp Card 5/6/26 - 5/9/26", "last_modified": "2026-06-03", "location": "NH Gulf (USD)", "not_employed": false}, {"er": "EXP022926", "employee": "Blackburn, Renee", "supervisor": "Spence, Tonya", "state": "Submitted", "amount": 49.73, "date_filed": "2026-09-01", "gl": "2026-09-02", "reason": "Per Diem - 08/18/26", "last_modified": "2026-09-03", "location": "NH Gulf (USD)", "not_employed": false}, {"er": "EXP020484", "employee": "Esparza, Clarence", "supervisor": "Mann, Bryan", "state": "Submitted", "amount": 174.66, "date_filed": "2026-08-31", "gl": "2026-09-02", "reason": "Corp Card 8/18/26 - 8/22/26", "last_modified": "2026-09-20", "location": "Chesapeake", "not_employed": false}, {"er": "EXP020605", "employee": "Tate, Kerry", "supervisor": "Vargas, Reginald", "state": "Submitted", "amount": 50.37, "date_filed": "2026-08-31", "gl": "2026-09-03", "reason": "Mileage - 08/27/26", "last_modified": "2026-09-12", "location": "Front Range", "not_employed": false}, {"er": "EXP022965", "employee": "Lester, Fred", "supervisor": "Spence, Tonya", "state": "Submitted", "amount": 792.79, "date_filed": "2026-08-31", "gl": "2026-09-01", "reason": "Per Diem - 08/25/26 -> 08/28/26", "last_modified": "2026-09-12", "location": "NH Gulf (USD)", "not_employed": false}, {"er": "EXP021323", "employee": "Herrera, Martha", "supervisor": "Melton, Briana", "state": "Submitted", "amount": 276.62, "date_filed": "2026-08-30", "gl": "2026-09-02", "reason": "Corp Card 8/25/26", "last_modified": "2026-09-06", "location": "Island", "not_employed": false}, {"er": "EXP022730", "employee": "Calderon, Noah", "supervisor": "Chaney, Harold", "state": "Draft", "amount": 385.17, "date_filed": "2026-08-30", "gl": "2026-09-02", "reason": "Corp Card 8/26/26 - 8/28/26", "last_modified": "2026-09-02", "location": "L8210", "not_employed": false}, {"er": "EXP022964", "employee": "Lester, Fred", "supervisor": "Spence, Tonya", "state": "Submitted", "amount": 245.3, "date_filed": "2026-08-30", "gl": "2026-09-02", "reason": "Corp Card 8/18/26 - 8/21/26", "last_modified": "2026-09-06", "location": "NH Gulf (USD)", "not_employed": false}, {"er": "EXP022513", "employee": "Maynard, Kyle", "supervisor": "Holden, Joann", "state": "Submitted", "amount": 534.74, "date_filed": "2026-08-27", "gl": "2026-08-30", "reason": "Corp Card 8/18/26 - 8/20/26", "last_modified": "2026-09-07", "location": "Maritime", "not_employed": false}, {"er": "EXP020395", "employee": "Hebert, Jerry", "supervisor": "Cooke, Jean", "state": "Submitted", "amount": 152.04, "date_filed": "2026-08-25", "gl": "2026-08-25", "reason": "Corp Card 8/22/26", "last_modified": "2026-08-25", "location": "Cascade", "not_employed": false}, {"er": "EXP022131", "employee": "Huffman, Jared", "supervisor": "Ballard, Duane", "state": "Submitted", "amount": 1568.21, "date_filed": "2026-08-22", "gl": "2026-08-25", "reason": "Corp Card 8/11/26 - 8/15/26", "last_modified": "2026-08-27", "location": "Coastal Bend", "not_employed": false}, {"er": "EXP022195", "employee": "Solomon, Ellen", "supervisor": "Ballard, Duane", "state": "Draft", "amount": 87.8, "date_filed": "2026-08-08", "gl": "2026-08-11", "reason": "Per Diem - 07/29/26", "last_modified": "2026-08-17", "location": "Coastal Bend", "not_employed": false}, {"er": "EXP020848", "employee": "Brandt, Doris", "supervisor": "Cervantes, Angelica", "state": "Submitted", "amount": 200.37, "date_filed": "2026-08-06", "gl": "2026-08-07", "reason": "Mileage - 07/21/26 -> 07/24/26", "last_modified": "2026-08-07", "location": "Great Lakes", "not_employed": false}, {"er": "EXP022147", "employee": "Foley, Tyrone", "supervisor": "Ballard, Duane", "state": "Draft", "amount": 1047.21, "date_filed": "2026-08-04", "gl": "2026-08-06", "reason": "Corp Card 7/29/26 - 8/1/26", "last_modified": "2026-08-18", "location": "Coastal Bend", "not_employed": false}, {"er": "EXP021096", "employee": "Benson, Janet", "supervisor": "Jennings, Sean", "state": "Submitted", "amount": 461.39, "date_filed": "2026-07-31", "gl": "2026-07-31", "reason": "Mileage - 07/24/26 -> 07/25/26", "last_modified": "2026-08-09", "location": "Gulf Coast", "not_employed": false}, {"er": "EXP020631", "employee": "Tran, Jeremy", "supervisor": "Vargas, Reginald", "state": "Draft", "amount": 778.5, "date_filed": "2026-07-15", "gl": "2026-07-15", "reason": "Corp Card 7/1/26 - 7/3/26", "last_modified": "2026-07-16", "location": "Front Range", "not_employed": false}, {"er": "EXP021542", "employee": "Calderon, Hailey", "supervisor": "Pineda, Megan", "state": "Draft", "amount": 823.3, "date_filed": "2026-07-12", "gl": "2026-07-14", "reason": "Mileage - 06/30/26 -> 07/02/26", "last_modified": "2026-07-26", "location": "Piedmont", "not_employed": false}, {"er": "EXP022676", "employee": "Hensley, Raymond", "supervisor": "Zavala, Seth", "state": "Draft", "amount": 472.57, "date_filed": "2026-07-09", "gl": "2026-07-12", "reason": "Mileage - 07/01/26 -> 07/02/26 & Per Diem", "last_modified": "2026-07-16", "location": "Meridian Central", "not_employed": false}, {"er": "EXP021165", "employee": "Huynh, Drew", "supervisor": "Wang, Jody", "state": "Draft", "amount": 445.49, "date_filed": "2026-07-08", "gl": "2026-07-09", "reason": "Corp Card 6/30/26 - 7/4/26", "last_modified": "2026-07-22", "location": "High Desert", "not_employed": false}, {"er": "EXP021216", "employee": "Beard, Clayton", "supervisor": "Wang, Jody", "state": "Submitted", "amount": 1127.43, "date_filed": "2026-07-06", "gl": "2026-07-06", "reason": "Corp Card 7/4/26", "last_modified": "2026-07-21", "location": "High Desert", "not_employed": false}, {"er": "EXP021042", "employee": "Valencia, Madeline", "supervisor": "Jennings, Sean", "state": "Submitted", "amount": 1248.72, "date_filed": "2026-06-30", "gl": "2026-07-02", "reason": "Corp Card 6/16/26 - 6/18/26", "last_modified": "2026-07-14", "location": "Gulf Coast", "not_employed": false}, {"er": "EXP022324", "employee": "Pitts, Brent", "supervisor": "Cabrera, Kathleen", "state": "Submitted", "amount": 81.22, "date_filed": "2026-06-29", "gl": "2026-06-30", "reason": "Mileage - 06/23/26", "last_modified": "2026-07-13", "location": "Built Environment", "not_employed": false}, {"er": "EXP022686", "employee": "Cisneros, Marvin", "supervisor": "Zavala, Seth", "state": "Submitted", "amount": 1613.38, "date_filed": "2026-06-23", "gl": "2026-06-25", "reason": "Per Diem - 06/16/26 -> 06/17/26", "last_modified": "2026-07-12", "location": "Meridian Central", "not_employed": false}, {"er": "EXP022180", "employee": "Strickland, Alisha", "supervisor": "Ballard, Duane", "state": "Draft", "amount": 250.58, "date_filed": "2026-06-07", "gl": "2026-06-10", "reason": "Per Diem - 06/04/26 -> 06/05/26", "last_modified": "2026-06-23", "location": "Coastal Bend", "not_employed": false}, {"er": "EXP020576", "employee": "Mooney, Dominique", "supervisor": "Vargas, Reginald", "state": "Submitted", "amount": 58.31, "date_filed": "2026-05-25", "gl": "2026-05-28", "reason": "Mileage - 05/12/26", "last_modified": "2026-05-25", "location": "Front Range", "not_employed": false}, {"er": "EXP022932", "employee": "Wilkins, Susan", "supervisor": "Spence, Tonya", "state": "Submitted", "amount": 73.87, "date_filed": "2026-05-17", "gl": "2026-05-19", "reason": "Corp Card 5/15/26", "last_modified": "2026-05-20", "location": "NH Gulf (USD)", "not_employed": false}, {"er": "EXP020758", "employee": "Mercado, Robin", "supervisor": "Cervantes, Angelica", "state": "Draft", "amount": 167.95, "date_filed": "2026-05-16", "gl": "2026-05-19", "reason": "Per Diem - 05/09/26", "last_modified": "2026-05-25", "location": "Great Lakes", "not_employed": false}, {"er": "EXP022099", "employee": "Melton, Ebony", "supervisor": "Ballard, Duane", "state": "Submitted", "amount": 421.2, "date_filed": "2026-05-10", "gl": "2026-05-12", "reason": "Corp Card 5/1/26", "last_modified": "2026-05-24", "location": "Coastal Bend", "not_employed": false}, {"er": "EXP021687", "employee": "Foley, Albert", "supervisor": "Suarez, Bruce", "state": "Submitted", "amount": 764.04, "date_filed": "2026-05-04", "gl": "2026-05-04", "reason": "Corp Card 4/28/26 - 5/2/26", "last_modified": "2026-05-11", "location": "Red Rock", "not_employed": false}, {"er": "EXP021523", "employee": "Velazquez, Shirley", "supervisor": "Pineda, Megan", "state": "Draft", "amount": 281.28, "date_filed": "2026-05-01", "gl": "2026-05-01", "reason": "Corp Card 4/22/26 - 4/24/26", "last_modified": "2026-05-21", "location": "Piedmont", "not_employed": false}, {"er": "EXP021580", "employee": "Sweeney, Frances", "supervisor": "Lloyd, Sherry", "state": "Submitted", "amount": 237.33, "date_filed": "2026-04-16", "gl": "2026-04-19", "reason": "Per Diem - 04/08/26 -> 04/11/26 & Mileage", "last_modified": "2026-04-27", "location": "Prairie", "not_employed": false}, {"er": "EXP022423", "employee": "Pollard, Arthur", "supervisor": "Cabrera, Kathleen", "state": "Submitted", "amount": 141.44, "date_filed": "2026-04-14", "gl": "2026-04-14", "reason": "Corp Card 4/7/26", "last_modified": "2026-04-21", "location": "Built Environment", "not_employed": false}, {"er": "EXP022391", "employee": "Salas, Rickey", "supervisor": "Cabrera, Kathleen", "state": "Draft", "amount": 612.81, "date_filed": "2026-03-25", "gl": "2026-03-26", "reason": "Corp Card 3/11/26 - 3/13/26", "last_modified": "2026-03-29", "location": "Built Environment", "not_employed": false}, {"er": "EXP021309", "employee": "Dodson, Maurice", "supervisor": "Melton, Briana", "state": "Submitted", "amount": 1676.23, "date_filed": "2026-03-24", "gl": "2026-03-25", "reason": "Corp Card 3/17/26 - 3/19/26", "last_modified": "2026-03-29", "location": "Island", "not_employed": false}, {"er": "EXP020819", "employee": "Campos, Spencer", "supervisor": "Cervantes, Angelica", "state": "Draft", "amount": 1129.59, "date_filed": "2026-03-11", "gl": "2026-03-12", "reason": "Mileage - 02/24/26 -> 02/28/26 & Per Diem", "last_modified": "2026-03-24", "location": "Great Lakes", "not_employed": false}, {"er": "EXP021452", "employee": "Lucero, Joyce", "supervisor": "Delacruz, Glen", "state": "Submitted", "amount": 352.43, "date_filed": "2026-03-08", "gl": "2026-03-08", "reason": "Mileage - 03/04/26 -> 03/06/26 & Per Diem", "last_modified": "2026-03-15", "location": "Hill Country", "not_employed": false}, {"er": "EXP020939", "employee": "Skinner, Christy", "supervisor": "Cervantes, Angelica", "state": "Submitted", "amount": 1235.68, "date_filed": "2026-03-07", "gl": "2026-03-09", "reason": "Corp Card 2/25/26 - 2/27/26", "last_modified": "2026-03-10", "location": "Great Lakes", "not_employed": false}, {"er": "EXP021468", "employee": "Winters, Herbert", "supervisor": "Pineda, Megan", "state": "Submitted", "amount": 1333.15, "date_filed": "2026-03-07", "gl": "2026-03-09", "reason": "Per Diem - 02/25/26 -> 02/27/26", "last_modified": "2026-03-13", "location": "Piedmont", "not_employed": false}, {"er": "EXP022808", "employee": "Hendrix, Latoya", "supervisor": "Ballard, Duane", "state": "Submitted", "amount": 829.03, "date_filed": "2026-02-27", "gl": "2026-03-02", "reason": "Corp Card 2/17/26 - 2/19/26", "last_modified": "2026-03-15", "location": "Coastal Bend", "not_employed": true}, {"er": "EXP021451", "employee": "Lucero, Joyce", "supervisor": "Delacruz, Glen", "state": "Draft", "amount": 438.94, "date_filed": "2026-02-22", "gl": "2026-02-23", "reason": "Per Diem - 02/17/26 -> 02/20/26 & Mileage", "last_modified": "2026-02-22", "location": "Hill Country", "not_employed": false}, {"er": "EXP022372", "employee": "Delgado, Alisha", "supervisor": "Cabrera, Kathleen", "state": "Submitted", "amount": 841.63, "date_filed": "2026-02-05", "gl": "2026-02-07", "reason": "Corp Card 1/20/26 - 1/23/26", "last_modified": "2026-02-21", "location": "Built Environment", "not_employed": false}, {"er": "EXP021327", "employee": "Benson, Lucas", "supervisor": "Riddle, Jeanette", "state": "Submitted", "amount": 1039.25, "date_filed": "2026-01-19", "gl": "2026-01-20", "reason": "Corp Card 1/14/26 - 1/15/26", "last_modified": "2026-02-01", "location": "Lakeshore", "not_employed": false}, {"er": "EXP020839", "employee": "Brandt, Doris", "supervisor": "Cervantes, Angelica", "state": "Draft", "amount": 763.85, "date_filed": "2026-01-11", "gl": "2026-01-13", "reason": "Corp Card 12/30/25 - 12/31/25", "last_modified": "2026-01-26", "location": "Great Lakes", "not_employed": false}, {"er": "EXP022551", "employee": "Levine, Autumn", "supervisor": "Maynard, Kyle", "state": "Submitted", "amount": 548.91, "date_filed": "2026-01-11", "gl": "2026-01-11", "reason": "Mileage - 12/30/25 -> 01/02/26", "last_modified": "2026-01-29", "location": "Maritime", "not_employed": false}]}, "timesheets": {"draft": 30, "submitted": 9, "total": 39, "avg_age": 38.4, "by_supervisor": [{"supervisor": "Cervantes, Angelica", "draft_n": 3, "sub_n": 2, "total_n": 5}, {"supervisor": "Jennings, Sean", "draft_n": 5, "sub_n": 0, "total_n": 5}, {"supervisor": "Mann, Bryan", "draft_n": 3, "sub_n": 1, "total_n": 4}, {"supervisor": "Holden, Joann", "draft_n": 3, "sub_n": 1, "total_n": 4}, {"supervisor": "Suarez, Bruce", "draft_n": 3, "sub_n": 1, "total_n": 4}, {"supervisor": "Melton, Briana", "draft_n": 3, "sub_n": 1, "total_n": 4}, {"supervisor": "Spence, Tonya", "draft_n": 2, "sub_n": 0, "total_n": 2}, {"supervisor": "Lloyd, Sherry", "draft_n": 2, "sub_n": 0, "total_n": 2}, {"supervisor": "Zavala, Seth", "draft_n": 0, "sub_n": 2, "total_n": 2}, {"supervisor": "Vargas, Reginald", "draft_n": 1, "sub_n": 1, "total_n": 2}, {"supervisor": "Riddle, Jeanette", "draft_n": 1, "sub_n": 0, "total_n": 1}, {"supervisor": "Delacruz, Glen", "draft_n": 1, "sub_n": 0, "total_n": 1}, {"supervisor": "Pennington, Priscilla", "draft_n": 1, "sub_n": 0, "total_n": 1}, {"supervisor": "Cooke, Jean", "draft_n": 1, "sub_n": 0, "total_n": 1}, {"supervisor": "Huff, Louis", "draft_n": 1, "sub_n": 0, "total_n": 1}], "details": [{"employee": "Bautista, Tonya", "supervisor": "Mann, Bryan", "state": "Draft", "begin": "2026-09-06", "end": "2026-09-12", "gl": "2026-09-12", "location": "Chesapeake"}, {"employee": "Nielsen, Ariel", "supervisor": "Mann, Bryan", "state": "Draft", "begin": "2026-09-06", "end": "2026-09-12", "gl": "2026-09-12", "location": "Chesapeake"}, {"employee": "Beltran, Gina", "supervisor": "Cervantes, Angelica", "state": "Draft", "begin": "2026-09-06", "end": "2026-09-12", "gl": "2026-09-12", "location": "Great Lakes"}, {"employee": "Ingram, Zoe", "supervisor": "Cervantes, Angelica", "state": "Submitted", "begin": "2026-09-06", "end": "2026-09-12", "gl": "2026-09-12", "location": "Great Lakes"}, {"employee": "Delacruz, Glen", "supervisor": "Holden, Joann", "state": "Draft", "begin": "2026-09-06", "end": "2026-09-12", "gl": "2026-09-12", "location": "Hill Country"}, {"employee": "Mcmillan, Janet", "supervisor": "Suarez, Bruce", "state": "Submitted", "begin": "2026-09-06", "end": "2026-09-12", "gl": "2026-09-12", "location": "Red Rock"}, {"employee": "Cisneros, Lydia", "supervisor": "Suarez, Bruce", "state": "Draft", "begin": "2026-09-06", "end": "2026-09-12", "gl": "2026-09-12", "location": "Red Rock"}, {"employee": "Vazquez, Arthur", "supervisor": "Suarez, Bruce", "state": "Draft", "begin": "2026-09-06", "end": "2026-09-12", "gl": "2026-09-12", "location": "Red Rock"}, {"employee": "Spence, Tonya", "supervisor": "Holden, Joann", "state": "Draft", "begin": "2026-09-06", "end": "2026-09-12", "gl": "2026-09-12", "location": "NH Gulf (USD)"}, {"employee": "Duarte, Vanessa", "supervisor": "Spence, Tonya", "state": "Draft", "begin": "2026-09-06", "end": "2026-09-12", "gl": "2026-09-12", "location": "NH Gulf (USD)"}, {"employee": "Mercado, Brendan", "supervisor": "Cervantes, Angelica", "state": "Draft", "begin": "2026-08-30", "end": "2026-09-05", "gl": "2026-09-05", "location": "Great Lakes"}, {"employee": "Velazquez, Becky", "supervisor": "Melton, Briana", "state": "Draft", "begin": "2026-08-30", "end": "2026-09-05", "gl": "2026-09-05", "location": "Island"}, {"employee": "Beard, Glenn", "supervisor": "Riddle, Jeanette", "state": "Draft", "begin": "2026-08-30", "end": "2026-09-05", "gl": "2026-09-05", "location": "Lakeshore"}, {"employee": "Trevino, Connie", "supervisor": "Lloyd, Sherry", "state": "Draft", "begin": "2026-08-30", "end": "2026-09-05", "gl": "2026-09-05", "location": "Prairie"}, {"employee": "Zavala, Seth", "supervisor": "Holden, Joann", "state": "Draft", "begin": "2026-08-30", "end": "2026-09-05", "gl": "2026-09-05", "location": "Meridian Central"}, {"employee": "Moyer, Darius", "supervisor": "Zavala, Seth", "state": "Submitted", "begin": "2026-08-30", "end": "2026-09-05", "gl": "2026-09-05", "location": "Meridian Central"}, {"employee": "Mooney, Dominique", "supervisor": "Vargas, Reginald", "state": "Draft", "begin": "2026-08-23", "end": "2026-08-29", "gl": "2026-09-01", "location": "Front Range"}, {"employee": "Daugherty, Courtney", "supervisor": "Jennings, Sean", "state": "Draft", "begin": "2026-08-23", "end": "2026-08-29", "gl": "2026-09-01", "location": "Gulf Coast"}, {"employee": "Meza, Gail", "supervisor": "Delacruz, Glen", "state": "Draft", "begin": "2026-08-23", "end": "2026-08-29", "gl": "2026-08-29", "location": "Hill Country"}, {"employee": "Solis, Clinton", "supervisor": "Zavala, Seth", "state": "Submitted", "begin": "2026-08-23", "end": "2026-08-29", "gl": "2026-09-01", "location": "Meridian Central"}, {"employee": "Aguirre, Mackenzie", "supervisor": "Jennings, Sean", "state": "Draft", "begin": "2026-08-23", "end": "2026-08-29", "gl": "2026-08-29", "location": "Gulf Coast"}, {"employee": "Duarte, Vanessa", "supervisor": "Spence, Tonya", "state": "Draft", "begin": "2026-07-26", "end": "2026-08-01", "gl": "2026-09-01", "location": "NH Gulf (USD)"}, {"employee": "Dickerson, Crystal", "supervisor": "Melton, Briana", "state": "Draft", "begin": "2026-07-12", "end": "2026-07-18", "gl": "2026-07-18", "location": "Island"}, {"employee": "Contreras, Wanda", "supervisor": "Mann, Bryan", "state": "Draft", "begin": "2026-07-05", "end": "2026-07-11", "gl": "2026-07-11", "location": "Chesapeake"}, {"employee": "Lucero, Jackie", "supervisor": "Suarez, Bruce", "state": "Draft", "begin": "2026-06-28", "end": "2026-07-04", "gl": "2026-09-01", "location": "Red Rock"}, {"employee": "Valencia, Madeline", "supervisor": "Jennings, Sean", "state": "Draft", "begin": "2026-06-14", "end": "2026-06-20", "gl": "2026-09-01", "location": "Gulf Coast"}, {"employee": "Delgado, Deborah", "supervisor": "Pennington, Priscilla", "state": "Draft", "begin": "2026-06-14", "end": "2026-06-20", "gl": "2026-09-01", "location": "L8190"}, {"employee": "Pearson, Loretta", "supervisor": "Lloyd, Sherry", "state": "Draft", "begin": "2026-05-24", "end": "2026-05-30", "gl": "2026-09-01", "location": "Prairie"}, {"employee": "Cooke, Jean", "supervisor": "Holden, Joann", "state": "Submitted", "begin": "2026-05-10", "end": "2026-05-16", "gl": "2026-09-01", "location": "Cascade"}, {"employee": "Wilkinson, Alexandria", "supervisor": "Mann, Bryan", "state": "Submitted", "begin": "2026-04-12", "end": "2026-04-18", "gl": "2026-04-18", "location": "Chesapeake"}, {"employee": "Herrera, Martha", "supervisor": "Melton, Briana", "state": "Submitted", "begin": "2026-04-12", "end": "2026-04-18", "gl": "2026-09-01", "location": "Island"}, {"employee": "Skinner, Christy", "supervisor": "Cervantes, Angelica", "state": "Submitted", "begin": "2026-03-08", "end": "2026-03-14", "gl": "2026-09-01", "location": "Great Lakes"}, {"employee": "Singh, Brandon", "supervisor": "Cervantes, Angelica", "state": "Draft", "begin": "2026-02-15", "end": "2026-02-21", "gl": "2026-02-21", "location": "Great Lakes"}, {"employee": "Sellers, Colleen", "supervisor": "Jennings, Sean", "state": "Draft", "begin": "2026-02-01", "end": "2026-02-07", "gl": "2026-09-01", "location": "Gulf Coast"}, {"employee": "Ortega, Sonya", "supervisor": "Cooke, Jean", "state": "Draft", "begin": "2026-02-01", "end": "2026-02-07", "gl": "2026-09-01", "location": "Cascade"}, {"employee": "Beard, Joshua", "supervisor": "Jennings, Sean", "state": "Draft", "begin": "2026-01-25", "end": "2026-01-31", "gl": "2026-09-01", "location": "Gulf Coast"}, {"employee": "Mcguire, Rodney", "supervisor": "Melton, Briana", "state": "Draft", "begin": "2026-01-11", "end": "2026-01-17", "gl": "2026-01-17", "location": "Island"}, {"employee": "Gamble, Kristen", "supervisor": "Huff, Louis", "state": "Draft", "begin": "2026-01-11", "end": "2026-01-17", "gl": "2026-09-01", "location": "Sierra"}, {"employee": "Velazquez, Dean", "supervisor": "Vargas, Reginald", "state": "Submitted", "begin": "2025-12-28", "end": "2026-01-03", "gl": "2026-09-01", "location": "Front Range"}]}, "employees_affected": 129, "unresolved_employees": []};
+const $=(s,r=document)=>r.querySelector(s);
+const money=n=>'$'+(n||0).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});
+const p2=n=>String(n).padStart(2,'0');
+const esc=s=>String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+/* nav */
+document.querySelectorAll('[data-page]').forEach(el=>el.addEventListener('click',()=>go(el.dataset.page)));
+function go(p){
+  document.querySelectorAll('.nav a').forEach(a=>a.classList.toggle('active',a.dataset.page===p));
+  document.querySelectorAll('.page').forEach(s=>s.classList.toggle('on',s.id==='page-'+p));
+  window.scrollTo(0,0);
+}
+
+function render(){
+  
+  const E=DASH.expenses, T=DASH.timesheets;
+
+  /* KPIs */
+  $('#kpis').innerHTML = `
+    ${kpi('exp','Expense Reports', svgDoc(), [[p2(E.draft),'Draft'],[p2(E.submitted),'Submitted'],[p2(E.total),'Total']],'exp')}
+    ${kpi('ts','Timesheets', svgClock(), [[p2(T.draft),'Draft'],[p2(T.submitted),'Submitted'],[p2(T.total),'Total']],'ts')}
+    ${kpi('emp','Employees Affected', svgUser(), [[DASH.employees_affected,'People']],'emp')}
+    ${kpi('age','Avg Age (Days)', svgHour(), [[(T.avg_age??'—')+'','Timesheet']],'age')}`;
+
+  /* dashboard sections + live filters */
+  document.querySelectorAll('#page-dashboard .grid > .card').forEach(c=>{const h=c.querySelector('h3');if(h)c.classList.add(/expense/i.test(h.textContent)?'exp-sec':'ts-sec');});
+  populateFilters();
+  renderDash();
+
+  /* expenses page */
+  $('#exp-mini').innerHTML = mtiles([[E.draft,'Draft','--purple'],[E.submitted,'Submitted','--green'],[E.total,'Total reports',''],[money(E.total_amount),'Total amount','']]);
+  $('#exp-sup-tbl').innerHTML = supTableExp(E.by_supervisor);
+  buildExpDetail();
+
+  /* timesheets page */
+  $('#ts-mini').innerHTML = mtiles([[T.draft,'Draft','--purple'],[T.submitted,'Submitted','--green'],[T.total,'Total timesheets',''],[(T.avg_age??'—')+'','Avg age (days)','']]);
+  $('#ts-sup-tbl').innerHTML = supTableTs(T.by_supervisor);
+  buildTsDetail();
+}
+
+/* ---- expense detail (filter+sort) ---- */
+let expSort={k:'amount',dir:-1};
+function buildExpDetail(){
+  const cols=[['er','Report #',0],['employee','Employee',0],['supervisor','Supervisor',0],['state','State',0],['date_filed','Date Filed',0],['gl','GL Date',0],['reason','Reason',0],['amount','Amount',1]];
+  const q=($('#exp-q').value||'').toLowerCase(), st=$('#exp-state').value;
+  let rows=DASH.expenses.details.filter(d=>(!st||d.state===st)&&(!q||[d.er,d.employee,d.supervisor,d.reason].join(' ').toLowerCase().includes(q)));
+  rows.sort((a,b)=>cmp(a[expSort.k],b[expSort.k])*expSort.dir);
+  $('#exp-count').textContent=rows.length+' of '+DASH.expenses.details.length+' reports';
+  $('#exp-tbl').innerHTML=head(cols.map(c=>c[1]),cols.map(c=>c[2]),cols.map(c=>c[0]),expSort,'exp')+
+    '<tbody>'+rows.map(d=>`<tr><td>${esc(d.er)}</td><td>${esc(d.employee)}</td><td>${esc(d.supervisor)}</td><td>${tag(d.state)}</td><td>${fmtDate(d.date_filed)}</td><td>${fmtDate(d.gl)}</td><td>${esc(d.reason)}</td><td class="num">${money(d.amount)}</td></tr>`).join('')+'</tbody>';
+  document.querySelectorAll('#exp-tbl th[data-k]').forEach(th=>th.onclick=()=>{const k=th.dataset.k;expSort.dir=(expSort.k===k?-expSort.dir:1);expSort.k=k;buildExpDetail();});
+}
+$('#exp-q').oninput=buildExpDetail; $('#exp-state').onchange=buildExpDetail;
+
+/* ---- timesheet detail ---- */
+let tsSort={k:'end',dir:-1};
+function buildTsDetail(){
+  const cols=[['employee','Employee',0],['supervisor','Supervisor',0],['state','State',0],['begin','Begin',0],['end','End',0],['gl','GL Date',0],['location','PMO',0]];
+  const q=($('#ts-q').value||'').toLowerCase(), st=$('#ts-state').value;
+  let rows=DASH.timesheets.details.filter(d=>(!st||d.state===st)&&(!q||[d.employee,d.supervisor].join(' ').toLowerCase().includes(q)));
+  rows.sort((a,b)=>cmp(a[tsSort.k],b[tsSort.k])*tsSort.dir);
+  $('#ts-count').textContent=rows.length+' of '+DASH.timesheets.details.length+' timesheets';
+  $('#ts-tbl').innerHTML=head(cols.map(c=>c[1]),cols.map(c=>c[2]),cols.map(c=>c[0]),tsSort,'ts')+
+    '<tbody>'+rows.map(d=>`<tr><td>${esc(d.employee)}</td><td>${esc(d.supervisor)}</td><td>${tag(d.state)}</td><td>${fmtDate(d.begin)}</td><td>${fmtDate(d.end)}</td><td>${fmtDate(d.gl)}</td><td>${esc(d.location||'')}</td></tr>`).join('')+'</tbody>';
+  document.querySelectorAll('#ts-tbl th[data-k]').forEach(th=>th.onclick=()=>{const k=th.dataset.k;tsSort.dir=(tsSort.k===k?-tsSort.dir:1);tsSort.k=k;buildTsDetail();});
+}
+$('#ts-q').oninput=buildTsDetail; $('#ts-state').onchange=buildTsDetail;
+
+/* ---- helpers ---- */
+function kpi(ic,t,svg,cols,cls,filt){return `<div class="kpi ${cls}"${filt?` data-filter="${filt}"`:''}><div class="ic ${ic}">${svg}</div><div class="kbody"><div class="t">${t}</div><div class="cols">${cols.map(c=>`<div class="col"><div class="n">${c[0]}</div><div class="l">${c[1]}</div></div>`).join('')}</div></div></div>`;}
+function bars(list,k1,k2,c1,c2,fmt,tot){
+  const max=Math.max(1,...list.map(r=>(r[k1]||0)+(r[k2]||0)));
+  return list.map(r=>{const a=r[k1]||0,b=r[k2]||0;return `<div class="bar-row clickable" data-sup="${esc(r.supervisor)}" title="View ${esc(r.supervisor)} — click for breakdown"><div class="nm">${esc(r.supervisor)}</div><div class="track"><div class="fill" style="width:${((a+b)/max*100).toFixed(1)}%">${a>0?`<div class="seg" style="width:${(a+b?a/(a+b)*100:0).toFixed(1)}%;background:${c1}"></div>`:''}${b>0?`<div class="seg" style="width:${(a+b?b/(a+b)*100:0).toFixed(1)}%;background:${c2}"></div>`:''}</div></div><div class="val">${fmt(r[tot])}</div></div>`;}).join('');
+}
+function head(labels,nums,keys,sort,tid){return '<thead><tr>'+labels.map((l,i)=>{const k=keys?keys[i]:null;const cls=(nums[i]?'num ':'')+((k)?'':'');const active=(sort&&k===sort.k)?(sort.dir>0?' ▲':' ▼'):'';return `<th class="${nums[i]?'num':''}" ${k?`data-k="${k}"`:''}>${l}${active}</th>`;}).join('')+'</tr></thead>';}
+function supTableExp(list){return head(['Supervisor','Draft','Submitted','Total','Draft $','Submitted $','Total $'],[0,1,1,1,1,1,1])+
+  '<tbody>'+list.map(r=>`<tr><td>${esc(r.supervisor)}</td><td class="num">${r.draft_n||''}</td><td class="num">${r.sub_n||''}</td><td class="num">${r.total_n}</td><td class="num">${money(r.draft_amt)}</td><td class="num">${money(r.sub_amt)}</td><td class="num">${money(r.total_amt)}</td></tr>`).join('')+'</tbody>';}
+function supTableTs(list){return head(['Supervisor','Draft','Submitted','Total'],[0,1,1,1])+
+  '<tbody>'+list.map(r=>`<tr><td>${esc(r.supervisor)}</td><td class="num">${r.draft_n||''}</td><td class="num">${r.sub_n||''}</td><td class="num">${r.total_n}</td></tr>`).join('')+'</tbody>';}
+function mtiles(a){return a.map(t=>`<div class="mtile"><div class="n" ${t[2]?`style="color:var(${t[2]})"`:''}>${t[0]}</div><div class="l">${t[1]}</div></div>`).join('');}
+function tag(s){return `<span class="tag ${s==='Draft'?'draft':'sub'}">${s}</span>`;}
+function cmp(a,b){if(a==null)a='';if(b==null)b='';if(typeof a==='number'&&typeof b==='number')return a-b;return String(a).localeCompare(String(b));}
+function fmtDate(s){if(!s)return '';const p=String(s).split('-');if(p.length!==3)return s;const m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return m[+p[1]-1]+' '+(+p[2])+', '+p[0];}
+function svgDoc(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg>';}
+function svgClock(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';}
+function svgUser(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>';}
+function svgHour(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h12M6 22h12M6 2c0 6 12 6 12 0M6 22c0-6 12-6 12 0"/></svg>';}
+
+/* ---- live dashboard filters: type toggle + supervisor + PMO(location) ---- */
+let FILT={type:'both',sup:'',loc:''};
+function matchF(d){return (!FILT.sup||d.supervisor===FILT.sup)&&(!FILT.loc||(d.location||'')===FILT.loc);}
+function aggSup(details){
+  const m={};
+  details.forEach(d=>{const s=d.supervisor||'(Unassigned)';const o=m[s]||(m[s]={supervisor:s,draft_n:0,sub_n:0,draft_amt:0,sub_amt:0});
+    const amt=typeof d.amount==='number'?d.amount:0;
+    if(d.state==='Draft'){o.draft_n++;o.draft_amt+=amt;}else{o.sub_n++;o.sub_amt+=amt;}});
+  return Object.values(m).map(o=>({...o,total_n:o.draft_n+o.sub_n,total_amt:o.draft_amt+o.sub_amt}));
+}
+function makeCombo(key,allLabel,options,onPick){
+  const input=$('#'+key+'Input'),list=$('#'+key+'List'),wrap=$('#'+key+'Combo');
+  let current='';
+  function draw(f){
+    const q=(f||'').trim().toLowerCase();
+    const rows=[{v:'',t:allLabel},...options.map(o=>({v:o,t:o}))].filter(o=>!q||o.t.toLowerCase().includes(q));
+    list.innerHTML=rows.length?rows.map(o=>`<div class="co-item${o.v===current?' sel':''}" data-v="${esc(o.v)}">${esc(o.t)}</div>`).join(''):'<div class="co-none">No matches</div>';
+  }
+  input.addEventListener('focus',()=>{input.value='';wrap.classList.add('open');draw('');});
+  input.addEventListener('input',()=>{wrap.classList.add('open');draw(input.value);});
+  input.addEventListener('blur',()=>setTimeout(()=>{wrap.classList.remove('open');input.value=current;},150));
+  list.addEventListener('mousedown',e=>{const it=e.target.closest('.co-item');if(!it)return;e.preventDefault();current=it.dataset.v;input.value=current;wrap.classList.remove('open');input.blur();onPick(current);});
+  input.value=current;
+}
+function populateFilters(){
+  const all=[...DASH.expenses.details,...DASH.timesheets.details];
+  const sups=[...new Set(all.map(d=>d.supervisor).filter(Boolean))].sort();
+  const locs=[...new Set(all.map(d=>d.location).filter(Boolean))].sort();
+  makeCombo('sup','All supervisors',sups,v=>{FILT.sup=v;renderDash();});
+  makeCombo('loc','All PMO',locs,v=>{FILT.loc=v;renderDash();});
+  document.querySelectorAll('#typeSeg button').forEach(b=>b.onclick=()=>{FILT.type=b.dataset.t;document.querySelectorAll('#typeSeg button').forEach(x=>x.classList.toggle('on',x===b));renderDash();});
+}
+function renderDash(){
+  const E=DASH.expenses,T=DASH.timesheets;
+  const ef=E.details.filter(matchF), tf=T.details.filter(matchF);
+  $('#exp-bars').innerHTML=bars(aggSup(ef).sort((a,b)=>b.total_amt-a.total_amt),'draft_amt','sub_amt','var(--purple)','var(--purple-l)',v=>money(v),'total_amt');
+  $('#ts-bars').innerHTML=bars(aggSup(tf).sort((a,b)=>b.total_n-a.total_n),'draft_n','sub_n','var(--green)','var(--green-l)',v=>v,'total_n');
+  const eDraft=ef.filter(d=>d.state==='Draft').sort((a,b)=>b.amount-a.amount);
+  $('#exp-draft-tbl').innerHTML=head(['Report #','Supervisor','Employee','Amount'],[0,0,0,1])+'<tbody>'+eDraft.map(d=>`<tr><td>${esc(d.er)}</td><td>${esc(d.supervisor)}</td><td>${esc(d.employee)}</td><td class="num">${money(d.amount)}</td></tr>`).join('')+'</tbody>';
+  const tDraft=tf.filter(d=>d.state==='Draft');
+  $('#ts-draft-tbl').innerHTML=head(['Supervisor','Employee','Begin','End'],[0,0,0,0])+'<tbody>'+tDraft.map(d=>`<tr><td>${esc(d.supervisor)}</td><td>${esc(d.employee)}</td><td>${fmtDate(d.begin)}</td><td>${fmtDate(d.end)}</td></tr>`).join('')+'</tbody>';
+  const se=FILT.type!=='ts', st=FILT.type!=='exp';
+  document.querySelectorAll('#page-dashboard .exp-sec').forEach(c=>c.style.display=se?'':'none');
+  document.querySelectorAll('#page-dashboard .ts-sec').forEach(c=>c.style.display=st?'':'none');
+  $('#exp-bars').querySelectorAll('.bar-row').forEach(row=>row.onclick=()=>openDrill('exp',row.dataset.sup));
+  $('#ts-bars').querySelectorAll('.bar-row').forEach(row=>row.onclick=()=>openDrill('ts',row.dataset.sup));
+}
+
+/* ---- supervisor drill-down modal ---- */
+function supMatch(d,sup){return (d.supervisor||'(Unassigned)')===sup && (!FILT.loc||(d.location||'')===FILT.loc);}
+function openDrill(kind,sup){
+  const isExp=kind==='exp';
+  const src=(isExp?DASH.expenses:DASH.timesheets).details.filter(d=>supMatch(d,sup));
+  const nD=src.filter(d=>d.state==='Draft').length, nS=src.length-nD;
+  $('#mTitle').textContent=sup;
+  if(isExp){
+    const tot=src.reduce((s,d)=>s+(typeof d.amount==='number'?d.amount:0),0);
+    $('#mSub').innerHTML=`Expense Reports · ${src.length} item${src.length!==1?'s':''} · <b>${money(tot)}</b> total &nbsp;·&nbsp; ${nD} Draft, ${nS} Submitted`;
+    const rows=src.slice().sort((a,b)=>(b.amount||0)-(a.amount||0));
+    $('#mTable').innerHTML=head(['Report #','Employee','State','Date Filed','Amount'],[0,0,0,0,1])+'<tbody>'+rows.map(d=>`<tr><td>${esc(d.er)}</td><td>${esc(d.employee)}</td><td>${tag(d.state)}</td><td>${fmtDate(d.date_filed)}</td><td class="num">${money(d.amount)}</td></tr>`).join('')+`<tr class="mtot"><td colspan="4">Total</td><td class="num">${money(tot)}</td></tr>`+'</tbody>';
+  } else {
+    $('#mSub').innerHTML=`Timesheets · ${src.length} item${src.length!==1?'s':''} &nbsp;·&nbsp; ${nD} Draft, ${nS} Submitted`;
+    const rows=src.slice().sort((a,b)=>cmp(b.end,a.end));
+    $('#mTable').innerHTML=head(['Employee','State','Begin','End','GL Date'],[0,0,0,0,0])+'<tbody>'+rows.map(d=>`<tr><td>${esc(d.employee)}</td><td>${tag(d.state)}</td><td>${fmtDate(d.begin)}</td><td>${fmtDate(d.end)}</td><td>${fmtDate(d.gl)}</td></tr>`).join('')+'</tbody>';
+  }
+  $('#modalOv').classList.add('open');
+}
+function closeModal(){$('#modalOv').classList.remove('open');}
+$('#mClose').onclick=closeModal;
+$('#modalOv').addEventListener('mousedown',e=>{if(e.target===$('#modalOv'))closeModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+render();
+</script>
+</body>
+</html>

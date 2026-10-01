@@ -1,0 +1,1688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Location Scorecards — Northstar Heritage</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="util_data.js"></script>
+<script src="drivers_data.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --side-bg:#e9e3de;--side-text:#28342f;--side-dim:#7a6a52;--side-active-bg:#ffffff;--accent:#ad8c63;
+  --bg:#f6f7fa;--surface:#fff;--border:#e5e7eb;--text:#0f172a;--muted:#475569;--dim:#94a3b8;
+  --good-bg:#d1f4dd;--good-text:#14532d;--good:#16a34a;
+  --bad-bg:#fee2e4;--bad-text:#991b1b;--bad:#dc2626;
+  --neu-bg:#f1f5f9;--neu-text:#475569;
+  --r:10px;--sh:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",system-ui,"Segoe UI",sans-serif;background:var(--bg);display:flex;min-height:100vh;color:var(--text)}
+
+/* ── SIDEBAR ── */
+.sidebar{width:230px;flex-shrink:0;position:sticky;top:8px;overflow:hidden;margin:8px 0 8px 8px;height:calc(100vh - 16px);border-radius:20px;background:radial-gradient(circle at 50% 30%, rgba(255,255,255,.34), transparent 60%),linear-gradient(180deg,#e9e3de 0%,#ddd5ce 52%,#d0c6bd 100%);color:var(--side-text);border:1px solid rgba(255,255,255,.8);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),inset 0 -1px 0 rgba(90,78,74,.12),0 20px 60px rgba(74,63,58,.16),0 40px 100px rgba(74,63,58,.10);display:flex;flex-direction:column}
+.sidebar::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:.03;background:radial-gradient(circle at 22% 18%, rgba(255,255,255,.9), transparent 30%),radial-gradient(circle at 72% 40%, rgba(92,78,74,.5), transparent 32%),radial-gradient(circle at 38% 80%, rgba(255,255,255,.7), transparent 34%);mix-blend-mode:multiply}
+.sidebar::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:radial-gradient(circle at 50% 42%, transparent 62%, rgba(74,63,62,.07) 100%)}
+.sidebar>*{position:relative}
+.brand{padding:18px 20px 14px;border-bottom:1px solid rgba(120,135,124,.18)}
+.brand-logo{display:none}
+.brand-sub{font-size:12px;color:var(--side-dim);margin-top:3px;line-height:1.4}
+.brand-sub::before{content:"NORTHSTAR";display:block;font-size:15px;font-weight:700;letter-spacing:.16em;color:#3a2f26;margin-bottom:5px}
+nav{padding:12px 0;flex:1}
+.nav-label{padding:14px 24px 6px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--accent)}
+.nav-item{display:flex;align-items:center;gap:10px;margin:1px 10px;padding:8px 14px;border-radius:9px;color:var(--side-text);text-decoration:none;font-size:13.5px;transition:background .15s,color .15s;cursor:pointer;border:1px solid transparent;background:none;text-align:left}
+.nav-item:hover{background:rgba(83,111,98,.10);color:#28342f}
+.nav-item.active{background:linear-gradient(180deg, rgba(255,255,255,.92), rgba(245,247,244,.82));border:1px solid rgba(255,255,255,.95);color:#28342f;box-shadow:0 12px 24px rgba(45,58,51,.08),0 3px 8px rgba(45,58,51,.04),inset 0 1px 0 rgba(255,255,255,.95)}
+.nav-icon{width:18px;height:18px;opacity:.65;flex-shrink:0}
+.sidebar-footer{padding:16px 20px;border-top:1px solid rgba(120,135,124,.22)}
+.sidebar-footer p{font-size:11px;color:var(--side-dim);line-height:1.6}
+
+/* ── MAIN ── */
+.main{flex:1;min-width:0;overflow-x:hidden}
+
+/* ── PAGE HEADER ── */
+.page-header{margin:28px 32px 0;padding:6px 24px;background:linear-gradient(180deg,#faf7f0 0%,#f5f0e3 100%);border:1px solid #e8dfc9;border-radius:14px;box-shadow:0 1px 3px rgba(56,46,48,.04)}
+.page-header-inner{display:flex;align-items:center;justify-content:space-between;padding-bottom:0}
+.page-title{font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:400;color:#382e30;letter-spacing:.04em;line-height:1.1}
+.page-meta{font-family:Georgia,'Times New Roman',serif;font-size:11.5px;font-style:italic;color:#7a6a52;margin-top:6px;letter-spacing:.04em}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:0;margin-top:0}
+.tab-btn{padding:11px 22px;font-size:11.5px;font-weight:700;color:#7a6a52;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;text-transform:uppercase;letter-spacing:.12em;font-family:Georgia,'Times New Roman',serif}
+.tab-btn.active{color:#382e30;border-bottom-color:#ad8c63;font-weight:700}
+.tab-btn:hover:not(.active){color:#382e30}
+
+/* ── CONTENT ── */
+.tab-panel{display:none;padding:22px 32px 40px;animation:fadeIn .2s ease}
+.tab-panel.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ── BRAND VALUES STRIP (under PMO Narrative) ── */
+.ch-values-strip{
+  display:grid;
+  grid-template-columns:1.4fr 1fr 1fr 1fr 1.2fr;
+  gap:24px;
+  align-items:center;
+  background:linear-gradient(180deg,#faf7f0 0%,#f5f0e3 100%);
+  border:1px solid #e8dfc9;
+  border-radius:14px;
+  padding:26px 28px;
+  margin-top:24px;
+  margin-bottom:24px;
+}
+.ch-values-narrative{font-size:12.5px;line-height:1.7;color:#475569}
+.ch-values-narrative-title{font-size:11px;font-weight:700;color:#382e30;letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px}
+.ch-pillar{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px}
+.ch-pillar-icon{
+  width:54px;height:54px;border-radius:50%;
+  background:#382e30;color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.ch-pillar-icon svg{width:26px;height:26px}
+.ch-pillar-title{font-size:11px;font-weight:700;color:#382e30;letter-spacing:.12em;text-transform:uppercase}
+.ch-pillar-desc{font-size:11.5px;line-height:1.55;color:#7a6a52;max-width:170px;font-family:Georgia,'Times New Roman',serif;font-style:italic}
+.ch-quote{
+  padding-left:18px;
+  border-left:3px solid #ad8c63;
+  font-family:Georgia,'Times New Roman',serif;
+  font-style:italic;
+  color:#382e30;
+  font-size:13px;
+  line-height:1.6;
+  position:relative;
+}
+.ch-quote::before{
+  content:'"';
+  position:absolute;
+  left:6px;top:-8px;
+  font-size:32px;
+  color:#ad8c63;
+  font-family:Georgia,serif;
+  line-height:1;
+}
+.ch-quote-attr{display:block;margin-top:8px;font-size:10.5px;font-weight:700;font-style:normal;color:#7a6a52;letter-spacing:.14em;text-transform:uppercase}
+@media(max-width:1100px){
+  .ch-values-strip{grid-template-columns:1fr 1fr 1fr;gap:18px}
+  .ch-values-narrative,.ch-quote{grid-column:1/-1}
+}
+
+/* ── NORTHSTAR HERITAGE BRAND HEADER ── */
+.ch-brand-header{
+  background:linear-gradient(180deg,#faf7f0 0%,#f5f0e3 100%);
+  border:1px solid #e8dfc9;
+  border-radius:14px;
+  padding:22px 28px;
+  margin-bottom:22px;
+  display:flex;
+  align-items:center;
+  gap:32px;
+  box-shadow:0 1px 3px rgba(56,46,48,.04);
+  position:relative;
+  flex-wrap:wrap;
+}
+.ch-brand-left{display:flex;flex-direction:column;gap:4px;flex-shrink:0}
+.ch-brand-name{
+  font-family:Georgia,'Times New Roman',serif;
+  font-size:28px;
+  font-weight:400;
+  letter-spacing:.18em;
+  color:#382e30;
+  line-height:1;
+}
+.ch-brand-divider{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:2px 0 4px;
+}
+.ch-brand-divider::before,.ch-brand-divider::after{
+  content:'';
+  flex:1;
+  height:1px;
+  background:#c9b89a;
+  max-width:38px;
+}
+.ch-brand-sub{
+  font-family:Georgia,'Times New Roman',serif;
+  font-size:13px;
+  font-weight:400;
+  letter-spacing:.42em;
+  color:#382e30;
+  line-height:1;
+}
+.ch-brand-tagline{
+  font-family:Georgia,'Times New Roman',serif;
+  font-size:11.5px;
+  font-weight:400;
+  letter-spacing:.18em;
+  color:#7a6a52;
+  line-height:1.7;
+  text-transform:uppercase;
+  flex-shrink:0;
+}
+.ch-brand-spacer{flex:1;min-width:0}
+.ch-brand-right{display:flex;flex-direction:column;gap:8px;align-items:stretch;flex-shrink:0;min-width:170px}
+.ch-brand-right .filter-select{
+  margin:0;
+  background:#fff;
+  border-color:#d9c9a8;
+  width:100%;
+}
+.ch-period-pill{
+  background:#fff;
+  border:1px solid #d9c9a8;
+  border-radius:10px;
+  padding:10px 16px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:12px;
+  font-weight:700;
+  color:#382e30;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+.ch-period-pill svg{width:14px;height:14px;color:#ad8c63}
+.ch-sync-pill{
+  background:#fff;
+  border:1px solid #e5dfd0;
+  border-radius:10px;
+  padding:8px 14px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:11px;
+  color:#7a6a52;
+  white-space:nowrap;
+}
+.ch-sync-pill svg{width:12px;height:12px;color:#ad8c63}
+@media(max-width:900px){
+  .ch-brand-header{flex-direction:column;align-items:stretch;text-align:left}
+  .ch-brand-right{align-items:stretch;width:100%}
+}
+
+/* ── FILTER BAR ── */
+.filter-bar{display:flex;align-items:center;gap:14px;margin-bottom:24px;flex-wrap:wrap}
+.filter-bar label{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.filter-select{padding:7px 32px 7px 12px;font-size:13.5px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;cursor:pointer;min-width:200px;box-shadow:var(--sh)}
+.filter-select:focus{outline:none;border-color:var(--accent)}
+.period-badge{padding:4px 12px;background:var(--accent);color:#fff;border-radius:20px;font-size:12px;font-weight:600}
+
+/* ── KPI CARDS ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:22px}
+.kpi-icon{
+  width:42px;height:42px;
+  border-radius:50%;
+  background:#f5f0e3;
+  border:1px solid #e8dfc9;
+  display:flex;align-items:center;justify-content:center;
+  color:#382e30;
+  flex-shrink:0;
+}
+.kpi-icon svg{width:20px;height:20px}
+.kpi-body-row{display:flex;align-items:center;gap:14px}
+.kpi-body-row .kpi-body-text{flex:1;min-width:0}
+.kpi-grid-2{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:26px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;box-shadow:var(--sh);position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:var(--r) 0 0 var(--r)}
+.kpi.good::before{background:var(--good)}
+.kpi.bad::before{background:var(--bad)}
+.kpi.neutral::before{background:var(--accent)}
+.kpi-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
+/* ── KPI TOOLTIPS ── */
+.kpi[data-tip]{overflow:visible}
+.kpi[data-tip]::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#1e2d45;color:#fff;font-size:11.5px;font-weight:400;line-height:1.55;padding:9px 13px;border-radius:7px;width:240px;white-space:normal;text-align:left;text-transform:none;letter-spacing:0;pointer-events:none;opacity:0;transition:opacity .15s;z-index:200;box-shadow:0 4px 14px rgba(0,0,0,.22)}
+.kpi[data-tip]::before{content:'';position:absolute;bottom:calc(100% + 2px);left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:#1e2d45;pointer-events:none;opacity:0;transition:opacity .15s;z-index:200}
+.kpi[data-tip]:hover::after,.kpi[data-tip]:hover::before{opacity:1}
+.kpi-val{font-size:22px;font-weight:700;color:var(--text);line-height:1}
+.kpi-footer{margin-top:6px;display:flex;align-items:center;gap:6px}
+.kpi-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:12px;font-size:11px;font-weight:600}
+.kpi-badge.good{background:var(--good-bg);color:var(--good-text)}
+.kpi-badge.bad{background:var(--bad-bg);color:var(--bad-text)}
+.kpi-badge.neutral{background:var(--neu-bg);color:var(--neu-text)}
+.kpi-sub{font-size:11px;color:var(--dim)}
+
+/* ── CHART GRID ── */
+.chart-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+.chart-grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}
+.chart-grid-1{display:grid;grid-template-columns:1fr;gap:18px;margin-bottom:18px}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 16px;box-shadow:var(--sh);min-width:0}
+.chart-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px}
+.chart-sub{font-size:11px;color:var(--dim);margin-bottom:16px}
+.chart-wrap{position:relative;height:200px;min-width:0}
+.chart-wrap-tall{position:relative;height:260px}
+.chart-wrap-xl{position:relative;height:320px}
+
+/* ── KPI DRILL-DOWN MODAL ── */
+.kpi[data-drill]{cursor:pointer;transition:transform .12s ease, box-shadow .12s ease}
+.kpi[data-drill]:hover{transform:translateY(-1px);box-shadow:0 6px 14px rgba(0,0,0,.09),0 2px 4px rgba(0,0,0,.05)}
+.kpi-drill-arrow{position:absolute;right:7px;top:7px;width:14px;height:14px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ad8c63' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 17L17 7M17 7H8M17 7v9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-size:contain;opacity:.95;pointer-events:none;z-index:1}
+.kpi[data-drill]:hover .kpi-drill-arrow{opacity:1}
+.drill-mask{position:fixed;inset:0;background:rgba(15,23,42,.45);backdrop-filter:blur(2px);z-index:1000;display:none;animation:dmFade .15s ease}
+.drill-mask.open{display:flex;align-items:stretch;justify-content:flex-end}
+@keyframes dmFade{from{opacity:0}to{opacity:1}}
+.drill-panel{background:var(--surface);width:min(1100px,96%);height:100%;display:flex;flex-direction:column;box-shadow:-8px 0 30px rgba(0,0,0,.18);animation:dmSlide .22s cubic-bezier(.2,.8,.2,1)}
+@keyframes dmSlide{from{transform:translateX(40px);opacity:0}to{transform:none;opacity:1}}
+.drill-head{padding:18px 26px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.drill-title{font-size:16px;font-weight:700;color:var(--text);display:flex;align-items:baseline;gap:10px}
+.drill-title small{font-size:12px;font-weight:500;color:var(--muted)}
+.drill-close{background:none;border:1px solid var(--border);width:30px;height:30px;border-radius:8px;cursor:pointer;color:var(--muted);font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center}
+.drill-close:hover{background:var(--bg);color:var(--text)}
+.drill-toolbar{padding:12px 26px 12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--border);background:#fafbfc}
+.drill-search{flex:1;min-width:240px;padding:7px 12px 7px 32px;font-size:13px;border:1px solid var(--border);border-radius:8px;background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='M21 21l-4.35-4.35'/%3E%3C/svg%3E") no-repeat 10px center;background-size:14px}
+.drill-search:focus{outline:none;border-color:var(--accent)}
+.drill-stat{font-size:12px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap}
+.drill-stat strong{color:var(--text);font-weight:700}
+.drill-body{flex:1;overflow:auto;padding:0 0 0 0;background:var(--surface)}
+.drill-table{width:100%;border-collapse:collapse;font-size:12.5px}
+.drill-table thead th{position:sticky;top:0;background:#1e2d45;color:#fff;padding:9px 12px;text-align:left;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;border-bottom:2px solid #0f1a2e;cursor:pointer;user-select:none;z-index:5}
+.drill-table thead th.num{text-align:right}
+.drill-table thead th.sort-asc::after{content:' ▲';opacity:.7;font-size:9px}
+.drill-table thead th.sort-desc::after{content:' ▼';opacity:.7;font-size:9px}
+.drill-table thead th:hover{background:#2a3a55}
+.drill-table tbody td{padding:8px 12px;border-bottom:1px solid #f1f5f9;color:var(--text)}
+.drill-table tbody td.num{text-align:right;font-variant-numeric:tabular-nums}
+.drill-table tbody td.muted{color:var(--muted);font-size:11.5px}
+.drill-table tbody tr:hover{background:#f8fafc}
+.drill-table .badge-won{display:inline-block;padding:1px 8px;background:var(--good-bg);color:var(--good-text);border-radius:10px;font-size:10px;font-weight:600}
+.drill-table .badge-lost{display:inline-block;padding:1px 8px;background:var(--bad-bg);color:var(--bad-text);border-radius:10px;font-size:10px;font-weight:600}
+.drill-table .badge-open{display:inline-block;padding:1px 8px;background:var(--neu-bg);color:var(--neu-text);border-radius:10px;font-size:10px;font-weight:600}
+.drill-empty{padding:60px 26px;text-align:center;color:var(--dim);font-size:13px}
+
+/* ── APRIL DASH TABLE ── */
+.april-table-wrap{background:linear-gradient(180deg,#faf7f0 0%,#f5f0e3 100%);border:1px solid #e8dfc9;border-radius:14px;overflow:auto;box-shadow:0 1px 3px rgba(56,46,48,.04)}
+.april-table{width:100%;border-collapse:collapse;font-size:12.5px;background:transparent}
+.april-table thead th{position:sticky;top:0;background:#382e30;color:#f5f0e3;padding:9px 12px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;white-space:nowrap;border-bottom:2px solid #1f1818;font-family:Georgia,'Times New Roman',serif}
+.april-table thead th:first-child{text-align:left}
+.april-table tbody tr:hover{background:rgba(173,140,99,.08)}
+.april-table tbody tr.total-row{background:rgba(173,140,99,.14);font-weight:700;border-top:2px solid #ad8c63;color:#382e30}
+.april-table tbody tr.total-row td{font-weight:700}
+.april-table td{padding:6px 12px;border-bottom:1px solid #ede4cf;text-align:right;white-space:nowrap;color:#382e30;font-size:11.5px;font-variant-numeric:tabular-nums}
+.april-table td:first-child{text-align:left;font-weight:600;color:#382e30;font-family:Georgia,'Times New Roman',serif}
+.april-table .cell-good{color:#446b3d;font-weight:600}
+.april-table .cell-bad{color:#a85040;font-weight:600}
+.cell-good{color:var(--good);font-weight:600}
+.cell-bad{color:var(--bad);font-weight:600}
+
+/* ── LEGEND ── */
+.chart-legend{display:flex;gap:14px;margin-top:8px;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+.legend-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.legend-line{width:18px;height:3px;flex-shrink:0}
+.legend-dashed{width:18px;height:0;border-top:2px dashed var(--dim);flex-shrink:0}
+
+/* ── NA STATE ── */
+.na-block{display:flex;align-items:center;justify-content:center;height:100%;color:var(--dim);font-size:13px;flex-direction:column;gap:6px}
+.na-block svg{opacity:.3;width:32px;height:32px}
+
+/* ── SECTION DIVIDER ── */
+.section-title{font-family:Georgia,'Times New Roman',serif;font-size:13px;font-weight:700;color:#382e30;text-transform:uppercase;letter-spacing:.16em;margin:28px 0 14px;padding-bottom:10px;border-bottom:1px solid #e8dfc9}
+
+/* ── RANK BARS ── */
+.rank-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px 22px;box-shadow:var(--sh);margin-bottom:18px}
+.rank-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:16px}
+
+/* ── PMO NARRATIVE (foursquare + support) ── */
+.foursquare-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.foursquare-card{background:linear-gradient(180deg,#faf7f0 0%,#f5f0e3 100%);border:1px solid #e8dfc9;border-radius:14px;padding:16px 18px;box-shadow:0 1px 3px rgba(56,46,48,.04);position:relative;overflow:hidden}
+.foursquare-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:#ad8c63;opacity:.85}
+.foursquare-card.fs-highlight::before{background:#7a9269}
+.foursquare-card.fs-lowlight::before{background:#b86d5a}
+.foursquare-card.fs-actions::before{background:#5a6f44}
+.foursquare-card.fs-observations::before{background:#ad8c63}
+.foursquare-label{font-family:Georgia,'Times New Roman',serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:#382e30;margin-bottom:10px}
+.foursquare-ta{width:100%;box-sizing:border-box;min-height:110px;border:1px solid #d9c9a8;border-radius:8px;padding:10px 12px;font-size:12.5px;font-family:inherit;color:#382e30;background:#fff;resize:vertical;line-height:1.55;outline:none;transition:border-color .15s, box-shadow .15s}
+.foursquare-ta::placeholder{color:#a89578;font-style:italic}
+.foursquare-ta:focus{border-color:#ad8c63;box-shadow:0 0 0 3px rgba(173,140,99,.15)}
+.support-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.support-card{background:linear-gradient(180deg,#faf7f0 0%,#f5f0e3 100%);border:1px solid #e8dfc9;border-radius:14px;padding:16px 18px;box-shadow:0 1px 3px rgba(56,46,48,.04);position:relative;overflow:hidden}
+.support-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:#ad8c63;opacity:.85}
+.support-card-label{font-family:Georgia,'Times New Roman',serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:#382e30;margin-bottom:6px}
+.support-q{font-family:Georgia,'Times New Roman',serif;font-size:11.5px;font-style:italic;color:#7a6a52;font-weight:400;margin-bottom:10px;line-height:1.5}
+.save-btn{background:#382e30;color:#fff;border:none;border-radius:8px;padding:10px 26px;font-size:11px;font-weight:700;cursor:pointer;letter-spacing:.16em;text-transform:uppercase;font-family:Georgia,'Times New Roman',serif;transition:background .15s, transform .12s}
+.save-btn:hover{background:#4a3f41;transform:translateY(-1px)}
+.save-confirm{background:#5a6f44 !important}
+
+@media(max-width:900px){
+  .kpi-grid,.kpi-grid-2{grid-template-columns:1fr 1fr}
+  .chart-grid-2{grid-template-columns:1fr}
+  .chart-grid-4{grid-template-columns:1fr 1fr}
+  .tab-panel{padding:20px}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════ SIDEBAR ══════════════════════════════ -->
+<aside class="sidebar">
+  <div class="brand">
+    <img class="brand-logo" alt="Northstar Heritage" src="data:image/png;base64,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" />
+    <div class="brand-sub">FP&amp;A Location Scorecard &middot; FY26</div>
+  </div>
+  <nav>
+    <div class="nav-label">Navigation</div>
+    <a class="nav-item active" href="#">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Location Scorecards
+    </a>
+  </nav>
+  <a class="nav-item nav-item-home" href="index.html">
+    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Home
+  </a>
+  <div class="sidebar-footer">
+    <p>Data as of<br>April 2026 · YTD</p>
+    <p id="util-data-banner" class="sidebar-synced" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:10px;height:10px;vertical-align:middle;margin-right:5px;opacity:.85"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg><span id="util-data-banner-text"></span>
+    </p>
+  </div>
+</aside>
+
+<!-- ═══════════════════════════════ MAIN ══════════════════════════════════ -->
+<div class="main">
+
+  <!-- Tabs -->
+  <div class="page-header">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('scorecards',this)">Location Scorecard</button>
+      <button class="tab-btn" onclick="switchTab('april',this)">Company Dashboard</button>
+    </div>
+  </div>
+
+  <!-- ─── TAB 1: LOCATION SCORECARD ─── -->
+  <div id="tab-scorecards" class="tab-panel active">
+    <!-- Northstar Heritage brand header -->
+    <div class="ch-brand-header">
+      <div class="ch-brand-left">
+        <div class="ch-brand-name">NORTHSTAR</div>
+        <div class="ch-brand-divider"><span class="ch-brand-sub">HERITAGE</span></div>
+      </div>
+      <div class="ch-brand-tagline">Guided by the past,<br>charting what comes next.</div>
+      <div class="ch-brand-spacer"></div>
+      <div class="ch-brand-right">
+        <div class="ch-period-pill">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          <span>April 2026</span>
+        </div>
+        <select class="filter-select" id="sc-filter" onchange="renderScorecard(this.value)" aria-label="PMO / Office"></select>
+      </div>
+    </div>
+
+    <div id="sc-body"></div>
+  </div>
+
+  <!-- ─── TAB 2: COMPANY DASHBOARD ─── -->
+  <div id="tab-april" class="tab-panel">
+    <div id="ap-body"></div>
+  </div>
+
+  <!-- ─── KPI Drill-down Modal ─── -->
+  <div id="drill-mask" class="drill-mask" onclick="if(event.target===this) closeDrill()">
+    <div class="drill-panel" role="dialog" aria-modal="true" aria-labelledby="drill-title">
+      <div class="drill-head">
+        <div class="drill-title" id="drill-title">
+          <span id="drill-title-main">Detail</span>
+          <small id="drill-title-sub"></small>
+        </div>
+        <button class="drill-close" onclick="closeDrill()" aria-label="Close">×</button>
+      </div>
+      <div class="drill-toolbar">
+        <input type="text" class="drill-search" id="drill-search" placeholder="Search projects, accounts, owners…" oninput="renderDrillTable()">
+        <div class="drill-stat" id="drill-stat"></div>
+      </div>
+      <div class="drill-body" id="drill-body"></div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+// ═══════════════════════════ DATA ═══════════════════════════════════════════
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const ACTUAL_MONTHS = 4; // Jan–Apr are actual
+
+// <<DRIVERS-SNAPSHOT:BEGIN>>
+// Generated by tools/gen_location_drivers.py from the demo world; do not edit by hand.
+// ── April Dashboard Snapshot ────────────────────────────────────────────────
+// One row per PMO (field offices, service lines, acquisitions and the International
+// entity, which the CRM/ERP books as "NH Gulf").
+const APRIL = [
+  {loc:'Big Sky',            proposals:882000, pipeline:3825500, wr:0.2463, bookings:133500, backlog:3762038, bhrs:1603, rev:123762.69, gp:26697.6, ni:-9966.82, costs:83587, util:0.8073, ovhd:20.25},
+  {loc:'Bluegrass',          proposals:954000, pipeline:1911500, wr:0.5585, bookings:140500, backlog:1303726, bhrs:1254.75, rev:107038.66, gp:28937.49, ni:-916.41, costs:66696, util:0.8272, ovhd:40.25},
+  {loc:'Built Environment',  proposals:324500, pipeline:1471000, wr:0.5061, bookings:9000, backlog:7512232, bhrs:1454.25, rev:134191.61, gp:39733.42, ni:-13455.74, costs:82032, util:0.6841, ovhd:37.75},
+  {loc:'Cascade',            proposals:2211500, pipeline:4364500, wr:0.4498, bookings:491000, backlog:4406129, bhrs:3142.75, rev:256635.41, gp:60289.49, ni:10844.89, costs:165086, util:0.863, ovhd:85.25},
+  {loc:'Chesapeake',         proposals:1986500, pipeline:2800500, wr:0.1935, bookings:320000, backlog:3470185, bhrs:2146, rev:170759.65, gp:31325.33, ni:-23042.16, costs:119127, util:0.7668, ovhd:79.25},
+  {loc:'Coastal Bend',       proposals:1495500, pipeline:3521000, wr:0.4879, bookings:255500, backlog:4364969, bhrs:3025.75, rev:282206.85, gp:93178.83, ni:47755.21, costs:160176, util:0.8873, ovhd:94},
+  {loc:'Front Range',        proposals:1158500, pipeline:2855500, wr:0.6556, bookings:362000, backlog:7835519, bhrs:2246.75, rev:207404.28, gp:53986.9, ni:-3989.06, costs:131790, util:0.7821, ovhd:84.25},
+  {loc:'Geospatial',         proposals:96000, pipeline:182500, wr:0.8463, bookings:62500, backlog:787998, bhrs:695.5, rev:61808.8, gp:17272.08, ni:-1088.3, costs:40063, util:0.7582, ovhd:6.25},
+  {loc:'Great Lakes',        proposals:3314500, pipeline:5452000, wr:0.4889, bookings:1216500, backlog:5405996, bhrs:2483, rev:241932.92, gp:61909.28, ni:-5262.43, costs:159090, util:0.7965, ovhd:134.25},
+  {loc:'Gulf Coast',         proposals:1228500, pipeline:5717500, wr:0.523, bookings:579500, backlog:2063087, bhrs:1928.75, rev:143632.02, gp:30290.97, ni:-25401.34, costs:96532, util:0.7148, ovhd:21.5},
+  {loc:'High Desert',        proposals:1824500, pipeline:2878500, wr:0.203, bookings:616500, backlog:2646743, bhrs:2308, rev:213396.35, gp:71631.85, ni:26428.87, costs:124734, util:0.8391, ovhd:66.25},
+  {loc:'Hill Country',       proposals:1009500, pipeline:2525000, wr:0.3387, bookings:384000, backlog:4776727, bhrs:1220, rev:135647.1, gp:31033.12, ni:-3628.25, costs:88098, util:0.8065, ovhd:28},
+  {loc:'Island',             proposals:877000, pipeline:1369500, wr:0.4762, bookings:244000, backlog:4777253, bhrs:1163.5, rev:110812.75, gp:22478.64, ni:-16175.47, costs:74222, util:0.7537, ovhd:16.75},
+  {loc:'Lakeshore',          proposals:86000, pipeline:1467000, wr:0.2617, bookings:26500, backlog:568786, bhrs:832.25, rev:86449.73, gp:25651.65, ni:-107.53, costs:53336, util:0.7765, ovhd:23.25},
+  {loc:'Maritime',           proposals:1015500, pipeline:1015500, wr:0.5468, bookings:109000, backlog:1194127, bhrs:592.75, rev:60323.35, gp:17684.16, ni:-8653.03, costs:36671, util:0.6752, ovhd:35.5},
+  {loc:'Meridian Central',   proposals:126000, pipeline:1011000, wr:0.3457, bookings:63000, backlog:1088646, bhrs:1273, rev:70327.72, gp:-23791.59, ni:-58622.8, costs:77005, util:0.8136, ovhd:13.75},
+  {loc:'Meridian Southwest', proposals:625000, pipeline:1053500, wr:0.5157, bookings:null, backlog:1518303, bhrs:686.75, rev:67818.66, gp:17788.51, ni:-22207.28, costs:42907, util:0.6333, ovhd:22.5},
+  {loc:'NH Gulf',            proposals:698000, pipeline:2264500, wr:0.5399, bookings:251500, backlog:4172324, bhrs:1663.5, rev:193784.56, gp:55816.97, ni:15182.37, costs:116517, util:0.8411, ovhd:78.5},
+  {loc:'Paleontology',       proposals:788000, pipeline:1525500, wr:0.5582, bookings:772500, backlog:3599717, bhrs:998.25, rev:89260.91, gp:24903.27, ni:-5534.32, costs:53797, util:0.7584, ovhd:40.5},
+  {loc:'Piedmont',           proposals:706000, pipeline:1577000, wr:0.1865, bookings:35500, backlog:2815751, bhrs:958.5, rev:95234.07, gp:28020.38, ni:-12289.1, costs:56343, util:0.688, ovhd:36.5},
+  {loc:'Prairie',            proposals:523500, pipeline:1909000, wr:0.3881, bookings:546000, backlog:3184144, bhrs:984, rev:79025.68, gp:23390.93, ni:-2483.62, costs:48095, util:0.7764, ovhd:17},
+  {loc:'Red Rock',           proposals:2889500, pipeline:5220500, wr:0.5581, bookings:1457000, backlog:5607799, bhrs:4236.5, rev:366159.11, gp:104003.77, ni:43322.41, costs:227836, util:0.8829, ovhd:70.5},
+  {loc:'Sierra',             proposals:1828000, pipeline:4610500, wr:0.5341, bookings:927000, backlog:3473748, bhrs:2215, rev:167271.46, gp:32874.27, ni:-24110.83, costs:116410, util:0.7537, ovhd:52.25},
+];
+
+// ── Annual Targets (Jan–Dec 2026) ────────────────────────────────────────────
+// FY budget by PMO. PMOs without a published budget have no entry (the scorecard
+// shows actuals only); the mid-year acquisition carries a placeholder revenue row.
+let TARGETS = {
+  revenue:{
+    'Big Sky':            [113020,118617,138580,147895,140400,157500,156084,143653,135428,132761,108485,122618],
+    'Bluegrass':          [84493,88474,103069,109684,103993,116594,115575,106483,100611,98942,81063,91728],
+    'Built Environment':  [119582,121701,136896,140410,130040,144246,143690,135040,131836,134728,114027,130889],
+    'Cascade':            [218574,227797,263924,279001,262267,292592,290711,269986,257111,254337,209484,237623],
+    'Chesapeake':         [159144,166029,192584,204034,192854,215929,214176,197831,187691,185438,152560,172960],
+    'Coastal Bend':       [192773,203053,238338,255514,242586,272138,269689,248200,233353,227567,185178,208931],
+    'Front Range':        [179208,187971,219431,234002,222107,249141,246909,227275,214370,210337,171995,194458],
+    'Great Lakes':        [198676,207739,241616,256689,243036,272086,269925,249058,235718,232206,190550,215782],
+    'Gulf Coast':         [140330,146880,171074,181901,172004,192619,191039,176401,166998,164243,134618,152371],
+    'High Desert':        [164544,172379,200966,213792,202067,226095,224349,207289,196242,192813,157878,178613],
+    'Hill Country':       [114270,120528,141683,152127,144817,162653,161101,147930,138791,135140,109802,123797],
+    'Lakeshore':          [67594,70909,82788,88299,83827,94038,93192,85768,80882,79350,64875,73342],
+    'Maritime':           [70646,72335,81995,84833,79005,87796,87384,81798,79204,80255,67451,77194],
+    'Meridian Central':   [116778,121080,139390,146507,137205,152873,151972,141598,135456,134938,111798,127142],
+    'Meridian Southwest': [null,null,null,null,null,null,null,null,null,null,null,null],
+    'NH Gulf':            [152493,155802,176118,181639,168766,187490,186635,174931,169937,172722,145530,166728],
+    'Paleontology':       [102433,104283,117357,120439,111570,123748,123276,115854,113041,115460,97682,112109],
+    'Piedmont':           [78150,82047,95868,102338,97252,109145,108142,99444,93685,91837,75021,84775],
+    'Prairie':            [65973,70157,83279,90277,86371,97221,96197,87966,81881,78888,63506,71302],
+    'Red Rock':           [267101,279477,325389,345891,326155,364276,361753,335207,317590,312480,256211,290048],
+    'Sierra':             [164817,172573,201054,213960,202766,227289,225324,207677,196273,192992,158122,178936],
+  },
+  gp:{
+    'Big Sky':            [36087,37874,44248,47222,44833,50295,49842,45869,43240,42390,34639,39151],
+    'Bluegrass':          [26366,27592,32126,34166,32370,36280,35969,33159,31354,30852,25292,28628],
+    'Built Environment':  [44673,45459,51127,52429,48551,53854,53647,50420,49233,50323,42597,48899],
+    'Cascade':            [60171,62675,72563,76653,72017,80328,79818,74160,70671,69962,57662,65425],
+    'Chesapeake':         [51404,53624,62196,65889,62276,69725,69160,63885,60614,59891,49276,55867],
+    'Coastal Bend':       [59249,62440,73338,78673,74685,83779,83027,76418,71823,69991,56921,64207],
+    'Front Range':        [67829,71145,83054,88569,84064,94294,93450,86022,81139,79611,65099,73601],
+    'Great Lakes':        [58152,60833,70794,75254,71269,79794,79158,73024,69082,68009,55779,63151],
+    'Gulf Coast':         [41185,43041,50034,53103,50181,56179,55726,51484,48805,48102,39495,44739],
+    'High Desert':        [60874,63778,74364,79124,74799,83698,83050,76723,72620,71341,58409,66078],
+    'Hill Country':       [32872,34686,40795,43824,41728,46871,46422,42619,39970,38897,31589,35608],
+    'Lakeshore':          [22898,24008,28011,29855,28334,31781,31497,28995,27358,26861,21975,24850],
+    'Maritime':           [23363,23924,27121,28063,26137,29047,28910,27060,26199,26544,22307,25528],
+    'Meridian Central':   [38536,39929,45929,48230,45143,50285,49994,46603,44619,44488,36888,41965],
+    'NH Gulf':            [46651,47670,53897,55598,51665,57401,57137,53547,52009,52850,44522,51004],
+    'Paleontology':       [39117,39801,44759,45897,42495,47126,46949,44139,43101,44058,37298,42819],
+    'Piedmont':           [24618,25822,30141,32141,30520,34241,33932,31223,29444,28895,23627,26712],
+    'Prairie':            [18395,19568,23235,25195,24116,27151,26863,24555,22846,22005,17708,19878],
+    'Red Rock':           [72686,76001,88411,93893,88447,98753,98082,90958,86263,84955,69712,78946],
+    'Sierra':             [57394,60081,69977,74447,70537,79061,78381,72255,68306,67184,55060,62316],
+  },
+  ni:{
+    'Big Sky':            [-17624,-4401,1043,7804,6733,14627,9033,9213,-1298,-3187,-16397,-15107],
+    'Bluegrass':          [-17699,-7249,-3594,1443,806,6620,2144,2715,-5443,-6740,-16583,-15932],
+    'Built Environment':  [-12335,-372,2436,5702,2385,9188,3707,6365,-1565,399,-11813,-8214],
+    'Cascade':            [-17262,5364,15423,26121,21542,35243,25967,27425,10394,8579,-15899,-11335],
+    'Chesapeake':         [-9211,7652,15858,24404,21721,33119,25970,25548,12165,10512,-8315,-4655],
+    'Coastal Bend':       [-16386,3660,13773,24928,22285,35147,26931,26443,10268,6754,-14926,-11965],
+    'Front Range':        [-14663,5842,16115,27255,24926,38652,30060,28962,12238,9154,-13291,-9864],
+    'Great Lakes':        [-29933,-7198,1727,12808,10579,23874,14292,15137,-2642,-5204,-27918,-25292],
+    'Gulf Coast':         [-10857,3548,10321,17604,15295,24537,18510,18597,7357,5704,-9942,-7266],
+    'High Desert':        [-4653,12933,22696,32233,28976,41074,33947,33086,19083,16607,-3851,175],
+    'Hill Country':       [-20638,-7723,-2567,4229,3496,10830,5419,5742,-4561,-6835,-19249,-18595],
+    'Lakeshore':          [-11271,-3109,188,4338,3741,8590,5127,5240,-1254,-2404,-10496,-9750],
+    'Maritime':           [-10831,-4172,-2764,-646,-1908,1497,-1488,-14,-4628,-4072,-10303,-9074],
+    'Meridian Central':   [-6528,5392,10676,16100,13267,20753,15783,16663,7712,7269,-5977,-3002],
+    'NH Gulf':            [-9904,4615,9171,13895,9863,18794,12260,14565,4502,6238,-9415,-4792],
+    'Paleontology':       [-293,8590,11752,14402,11211,17180,13154,14497,8468,10103,-316,3537],
+    'Piedmont':           [-22060,-11754,-8654,-3729,-3895,1387,-3042,-2238,-10276,-11725,-20735,-20756],
+    'Prairie':            [-16131,-8433,-5586,-1361,-1377,2614,-575,-272,-6477,-8246,-15092,-15370],
+    'Red Rock':           [-28934,-754,11363,25227,20448,36783,25321,27314,5698,2592,-26822,-22453],
+    'Sierra':             [-11765,6284,15234,24792,22376,34473,26885,26167,11621,9253,-10653,-7287],
+  },
+  util:{
+    'Big Sky':            [0.77,0.78,0.8,0.81,0.83,0.83,0.83,0.82,0.8,0.79,0.77,0.77],
+    'Bluegrass':          [0.75,0.76,0.78,0.79,0.81,0.81,0.81,0.8,0.78,0.77,0.75,0.75],
+    'Built Environment':  [0.71,0.71,0.72,0.73,0.73,0.73,0.73,0.73,0.72,0.71,0.71,0.71],
+    'Cascade':            [0.81,0.82,0.84,0.85,0.87,0.87,0.87,0.86,0.84,0.83,0.81,0.81],
+    'Chesapeake':         [0.78,0.79,0.81,0.82,0.84,0.84,0.84,0.83,0.81,0.8,0.78,0.78],
+    'Coastal Bend':       [0.77,0.78,0.8,0.81,0.83,0.83,0.83,0.82,0.8,0.79,0.77,0.77],
+    'Front Range':        [0.69,0.7,0.72,0.73,0.75,0.75,0.75,0.74,0.72,0.71,0.69,0.69],
+    'Great Lakes':        [0.8,0.81,0.83,0.84,0.86,0.86,0.86,0.85,0.83,0.82,0.8,0.8],
+    'Gulf Coast':         [0.71,0.72,0.74,0.75,0.77,0.77,0.77,0.76,0.74,0.73,0.71,0.71],
+    'High Desert':        [0.79,0.8,0.82,0.83,0.85,0.85,0.85,0.84,0.82,0.81,0.79,0.79],
+    'Hill Country':       [0.73,0.74,0.76,0.77,0.79,0.79,0.79,0.78,0.76,0.75,0.73,0.73],
+    'Lakeshore':          [0.72,0.73,0.75,0.76,0.78,0.78,0.78,0.77,0.75,0.74,0.72,0.72],
+    'Maritime':           [0.69,0.69,0.7,0.71,0.71,0.71,0.71,0.71,0.7,0.69,0.69,0.69],
+    'Meridian Central':   [0.83,0.84,0.86,0.87,0.88,0.89,0.89,0.88,0.86,0.85,0.84,0.83],
+    'Meridian Southwest': [0.69,0.7,0.72,0.73,0.74,0.75,0.75,0.74,0.72,0.71,0.7,0.69],
+    'NH Gulf':            [0.82,0.83,0.84,0.85,0.86,0.86,0.86,0.85,0.84,0.83,0.82,0.82],
+    'Paleontology':       [0.77,0.77,0.78,0.79,0.79,0.79,0.79,0.79,0.78,0.77,0.77,0.77],
+    'Piedmont':           [0.71,0.72,0.74,0.75,0.77,0.77,0.77,0.76,0.74,0.73,0.71,0.71],
+    'Prairie':            [0.74,0.75,0.77,0.78,0.8,0.8,0.8,0.79,0.77,0.76,0.74,0.74],
+    'Red Rock':           [0.79,0.8,0.82,0.83,0.85,0.85,0.85,0.84,0.82,0.81,0.79,0.79],
+    'Sierra':             [0.73,0.74,0.76,0.77,0.79,0.79,0.79,0.78,0.76,0.75,0.73,0.73],
+  },
+};
+
+// ── Billable hours by month (overridden by util_data.js when present) ────────
+let BILLABLE_HRS = {};   // {office: [Jan…Dec]}  — populated from util_data.js
+
+// ── Monthly Actuals Jan–Apr 2026 (overridden by util_data.js when present) ───
+let UTIL_ACT = {
+  'Big Sky':            [0.59,0.7036,0.7374,0.8073],
+  'Bluegrass':          [0.609,0.7403,0.7802,0.8272],
+  'Built Environment':  [0.5657,0.6542,0.6298,0.6841],
+  'Cascade':            [0.6825,0.7688,0.831,0.863],
+  'Chesapeake':         [0.617,0.6877,0.761,0.7668],
+  'Coastal Bend':       [0.6646,0.7856,0.8448,0.8873],
+  'Front Range':        [0.5924,0.6993,0.7328,0.7821],
+  'Geospatial':         [0.5572,0.6241,0.7298,0.7582],
+  'Great Lakes':        [0.6707,0.7388,0.7474,0.7965],
+  'Gulf Coast':         [0.6011,0.7288,0.7324,0.7148],
+  'High Desert':        [0.615,0.7553,0.7299,0.8391],
+  'Hill Country':       [0.6637,0.7258,0.76,0.8065],
+  'Island':             [0.5127,0.5724,0.6747,0.7537],
+  'Lakeshore':          [0.5839,0.69,0.7295,0.7765],
+  'Maritime':           [0.517,0.6042,0.638,0.6752],
+  'Meridian Central':   [0.6426,0.7801,0.8226,0.8136],
+  'Meridian Southwest': [0.4771,0.548,0.6202,0.6333],
+  'NH Gulf':            [0.6984,0.8114,0.8167,0.8411],
+  'Paleontology':       [0.7102,0.8048,0.7803,0.7584],
+  'Piedmont':           [0.4531,0.5461,0.6278,0.688],
+  'Prairie':            [0.5648,0.6906,0.76,0.7764],
+  'Red Rock':           [0.6979,0.8094,0.8483,0.8829],
+  'Sierra':             [0.5523,0.6255,0.726,0.7537],
+};
+
+// ── Monthly Revenue / GP / NI Actuals (Jan–Apr 2026) ────────────────────────
+// Rolled up from project revenue and timesheet costs per PMO (same source as the drill-downs).
+const REV_ACT = {
+  'Big Sky':            [116339,106378,109627,123763],
+  'Bluegrass':          [87952,91743,101809,107039],
+  'Built Environment':  [120677,119851,147802,134192],
+  'Cascade':            [230172,210007,267167,256635],
+  'Chesapeake':         [167618,139971,160287,170760],
+  'Coastal Bend':       [213617,205904,236496,282207],
+  'Front Range':        [209655,158055,193716,207404],
+  'Geospatial':         [55100,35430,70229,61809],
+  'Great Lakes':        [221152,189474,214414,241933],
+  'Gulf Coast':         [138733,131943,144933,143632],
+  'High Desert':        [155352,164384,172094,213396],
+  'Hill Country':       [112552,118844,96512,135647],
+  'Island':             [82144,68762,90690,110813],
+  'Lakeshore':          [71906,68224,80857,86450],
+  'Maritime':           [60316,53109,61124,60323],
+  'Meridian Central':   [100286,87873,64016,70328],
+  'Meridian Southwest': [54492,51281,61038,67819],
+  'NH Gulf':            [178775,171548,183013,193785],
+  'Paleontology':       [90940,101901,103614,89261],
+  'Piedmont':           [67181,66432,87140,95234],
+  'Prairie':            [104999,57924,74113,79026],
+  'Red Rock':           [325381,309089,374612,366159],
+  'Sierra':             [136922,126955,170928,167271],
+};
+
+const GP_ACT = {
+  'Big Sky':            [42355,34141,21538,26698],
+  'Bluegrass':          [29520,30612,29721,28937],
+  'Built Environment':  [39555,38967,63404,39733],
+  'Cascade':            [63021,60836,76818,60289],
+  'Chesapeake':         [60117,42266,29904,31325],
+  'Coastal Bend':       [70027,63975,66726,93179],
+  'Front Range':        [91532,42697,54546,53987],
+  'Geospatial':         [16142,3175,24149,17272],
+  'Great Lakes':        [64213,50257,62117,61909],
+  'Gulf Coast':         [40388,38664,38262,30291],
+  'High Desert':        [52602,59864,58141,71632],
+  'Hill Country':       [17868,36434,-1493,31033],
+  'Island':             [23744,15758,19175,22479],
+  'Lakeshore':          [25123,21672,26891,25652],
+  'Maritime':           [21602,15066,16796,17684],
+  'Meridian Central':   [19393,3860,-33459,-23792],
+  'Meridian Southwest': [15192,15675,16144,17789],
+  'NH Gulf':            [58099,52088,49360,55817],
+  'Paleontology':       [16043,31037,31106,24903],
+  'Piedmont':           [21126,20747,27189,28020],
+  'Prairie':            [65891,16137,21369,23391],
+  'Red Rock':           [110529,104240,135968,104004],
+  'Sierra':             [35118,31849,45329,32874],
+};
+
+const NI_ACT = {
+  'Big Sky':            [-20409,-7200,-20870,-9967],
+  'Bluegrass':          [-21800,-2286,-5002,-916],
+  'Built Environment':  [-34253,-14424,4662,-13456],
+  'Cascade':            [-29911,2293,19171,10845],
+  'Chesapeake':         [-16210,-10091,-21929,-23042],
+  'Coastal Bend':       [-21391,7788,16684,47755],
+  'Front Range':        [-5316,-21851,-12423,-3989],
+  'Geospatial':         [-18291,-19690,1906,-1088],
+  'Great Lakes':        [-35349,-16573,-7722,-5262],
+  'Gulf Coast':         [-29532,-1278,-6275,-25401],
+  'High Desert':        [-30235,10296,879,26429],
+  'Hill Country':       [-38683,-122,-40161,-3628],
+  'Island':             [-38997,-30147,-22810,-16175],
+  'Lakeshore':          [-16160,-6219,-1946,-108],
+  'Maritime':           [-23291,-17310,-15563,-8653],
+  'Meridian Central':   [-41476,-31809,-66835,-58623],
+  'Meridian Southwest': [-39781,-23606,-22794,-22207],
+  'NH Gulf':            [-10164,8440,7331,15182],
+  'Paleontology':       [-26415,2686,-780,-5534],
+  'Piedmont':           [-39711,-22120,-16762,-12289],
+  'Prairie':            [23387,-13092,-6190,-2484],
+  'Red Rock':           [-5530,35202,65988,43322],
+  'Sierra':             [-56022,-32727,-11651,-24111],
+};
+
+// <<DRIVERS-SNAPSHOT:END>>
+
+// ── Live data override from util_data.js ─────────────────────────────────────
+// Maps Utilization Site office names → April Dashboard / TARGETS names
+const UTIL_TO_APRIL = {
+  'International':    'NH Gulf',
+  'Built Environment':'Built Environment',
+  'Corporate':        'Corporate',
+  'Paleontology':     'Paleontology',
+};
+// Reverse map for looking up nonpost_hrs / billable_hrs by APRIL loc name
+const APRIL_TO_UTIL = {
+  'NH Gulf': 'International',
+};
+
+(function applyLiveUtilData() {
+  const D = window.CH_UTIL_DATA;
+  if (!D) return; // util_data.js absent — hardcoded fallback stays in effect
+
+  const remap = n => UTIL_TO_APRIL[n] || n;
+
+  // Override UTIL_ACT with full 12-month arrays from Util Site
+  const newAct = {};
+  for (const [office, actuals] of Object.entries(D.util_actuals || {})) {
+    newAct[remap(office)] = actuals;
+  }
+  UTIL_ACT = newAct;
+
+  // Override TARGETS.util with Util Site targets
+  const newTgt = {};
+  for (const [office, targets] of Object.entries(D.util_targets || {})) {
+    newTgt[remap(office)] = targets;
+  }
+  TARGETS = Object.assign({}, TARGETS, { util: newTgt });
+
+  // Load billable_hrs from util_data.js
+  if (D.billable_hrs) {
+    const newBhr = {};
+    for (const [office, arr] of Object.entries(D.billable_hrs)) {
+      newBhr[remap(office)] = arr;
+    }
+    BILLABLE_HRS = newBhr;
+  }
+
+  // Update APRIL ovhd (non-posting hours) — April = index 3
+  const hrs = D.nonpost_hrs || {};
+  APRIL.forEach(row => {
+    const key = APRIL_TO_UTIL[row.loc] || row.loc;
+    const entry = hrs[key];
+    if (entry && entry[3] != null) row.ovhd = entry[3];
+  });
+
+  // Show freshness banner
+  try {
+    const ts = new Date(D.generated);
+    const banner = document.getElementById('util-data-banner');
+    const bannerText = document.getElementById('util-data-banner-text');
+    if (banner) {
+      const fmt = ts.toLocaleString('en-US', {month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
+      if (bannerText) {
+        bannerText.textContent = 'Synced ' + fmt;
+      } else {
+        banner.textContent = 'Synced ' + fmt;
+      }
+      banner.style.display = 'flex';
+    }
+  } catch(e) {}
+})();
+
+// ═══════════════════════════ HELPERS ══════════════════════════════════════════
+const sum = arr => arr.reduce((a,b)=> a + (b||0), 0);
+const avg = arr => { const v=arr.filter(x=>x!=null); return v.length ? sum(v)/v.length : null; };
+
+function fmt$(v){ if(v==null) return '—';
+  const a=Math.abs(v);
+  if(a>=1e6) return (v<0?'-':'')+'$'+(a/1e6).toFixed(2)+'M';
+  if(a>=1e3) return (v<0?'-':'')+'$'+(a/1e3).toFixed(0)+'K';
+  return (v<0?'-':'')+'$'+a.toFixed(0);
+}
+function fmtPct(v){ return v==null? '—' : (v*100).toFixed(1)+'%'; }
+function fmtNum(v){ if(v==null) return '—'; return v.toLocaleString('en-US',{maximumFractionDigits:0}); }
+function fmtHrs(v){ return v==null? '—' : Math.round(v).toLocaleString('en-US'); }
+function tblMoney(v){ if(v==null) return '—'; const n=Math.round(Math.abs(v)).toLocaleString('en-US'); return v<0?'('+n+')':n; }
+
+// ── Plugin: dashed outline for Target bars (Chart.js bars ignore borderDash) ──
+const dashedTargetPlugin = {
+  id: 'dashedTargetBorder',
+  afterDatasetsDraw(chart) {
+    const {ctx, data} = chart;
+    data.datasets.forEach((ds, i) => {
+      if (ds.label !== 'Target' || ds._noDashOutline) return;
+      const meta = chart.getDatasetMeta(i);
+      if (!meta || meta.hidden) return;
+      ctx.save();
+      ctx.setLineDash([4, 3]);
+      ctx.lineWidth = 1.6;
+      meta.data.forEach((bar, j) => {
+        const v = ds.data[j];
+        if (v == null) return;
+        const p = bar.getProps(['x','y','width','height','base'], false);
+        const x = p.x - p.width/2;
+        const top = Math.min(p.y, p.base);
+        const h = Math.abs(p.base - p.y);
+        // Color matches the bar — slightly darker tan for positive, muted red for negative
+        ctx.strokeStyle = v >= 0 ? '#8a6f47' : '#c97c7c';
+        ctx.beginPath();
+        ctx.rect(x + 0.5, top + 0.5, p.width - 1, h - 1);
+        ctx.stroke();
+      });
+      ctx.restore();
+    });
+  }
+};
+if (typeof Chart !== 'undefined') { try { Chart.register(dashedTargetPlugin); } catch(e) {} }
+
+// ── Chart option helpers ─────────────────────────────────────────────────────
+function barOpts(dollarY){
+  return {
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>dollarY?fmt$(c.raw):c.formattedValue}}},
+    scales:{
+      x:{grid:{display:false},ticks:{font:{size:11},maxRotation:35}},
+      y:{grid:{color:'#f1f5f9'},ticks:{font:{size:11},callback:dollarY?v=>fmt$(v):undefined}}
+    }
+  };
+}
+function lineOpts(dollarY,suffix){
+  return {
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>suffix==='%'?fmtPct(c.raw):dollarY?fmt$(c.raw):c.formattedValue}}},
+    scales:{
+      x:{grid:{display:false},ticks:{font:{size:11}}},
+      y:{grid:{color:'#f1f5f9'},ticks:{font:{size:11},callback:suffix==='%'?v=>(v*100).toFixed(0)+'%':dollarY?v=>fmt$(v):undefined}}
+    }
+  };
+}
+
+function varBadge(actual, target){
+  if(actual==null||target==null||target===0) return '<span class="kpi-badge neutral">N/A</span>';
+  const pct = (actual-target)/Math.abs(target)*100;
+  const cls = pct>=0?'good':'bad';
+  const arrow = pct>=0?'▲':'▼';
+  return `<span class="kpi-badge ${cls}">${arrow} ${Math.abs(pct).toFixed(1)}% vs tgt</span>`;
+}
+function varBadgePts(actual, target){
+  if(actual==null||target==null) return '<span class="kpi-badge neutral">N/A</span>';
+  const diff = (actual-target)*100;
+  const cls = diff>=0?'good':'bad';
+  const arrow = diff>=0?'▲':'▼';
+  return `<span class="kpi-badge ${cls}">${arrow} ${Math.abs(diff).toFixed(1)}pp vs tgt</span>`;
+}
+function utilClass(v,t){ if(v==null) return 'neutral'; return v>=t?'good':'bad'; }
+function revClass(v,t){ if(v==null||t==null) return 'neutral'; return v>=t?'good':'bad'; }
+
+// ── KPI ICON LIBRARY (inline SVG) ────────────────────────────────────────────
+const KPI_ICONS = {
+  revenue:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M4 21V10M20 21V10M6 21V12M10 21V12M14 21V12M18 21V12M3 10l9-6 9 6M3 10h18"/></svg>',
+  gp:        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20a7 7 0 0 1-7-7c4 0 7 3 7 7zM11 20a7 7 0 0 0 7-7c-4 0-7 3-7 7zM11 20V8M11 8c0-3 2-5 5-5M11 8c0-3-2-5-5-5"/></svg>',
+  ni:        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z"/><path d="M9 12l2 2 4-4"/></svg>',
+  util:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14a9 9 0 0 1 18 0"/><path d="M12 14l4-4"/><circle cx="12" cy="14" r="1.2" fill="currentColor"/></svg>',
+  backlog:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5M3 17l9 5 9-5"/></svg>',
+  pipeline:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V9a7 7 0 0 1 14 0v12M5 21h14M9 21v-6h6v6"/></svg>',
+  proposals: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h6M8 9h2"/></svg>',
+  bookings:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m11 17 2 2a1 1 0 0 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 0 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 0 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 0 0 3-3"/><path d="M3 4h8"/></svg>',
+  winrate:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="13" r="8"/><circle cx="11" cy="13" r="5"/><circle cx="11" cy="13" r="2"/><circle cx="11" cy="13" r="0.6" fill="currentColor" stroke="none"/><line x1="22" y1="2" x2="11" y2="13"/><polyline points="14 13 11 13 11 10"/></svg>',
+  ovhd:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+};
+function kpiIcon(kind){ return `<div class="kpi-icon">${KPI_ICONS[kind]||''}</div>`; }
+
+// Get April targets (index 3 = April)
+function aprTgt(section, locKey){ const t=TARGETS[section][locKey]; return t?t[3]:null; }
+
+// Resolve to data row
+function getRow(loc){
+  if(loc==='ALL') return null;
+  return APRIL.find(r=>r.loc===loc);
+}
+function getAll(){
+  return {
+    loc:'All Offices',
+    proposals: sum(APRIL.map(r=>r.proposals||0)),
+    pipeline:  sum(APRIL.map(r=>r.pipeline||0)),
+    wr: avg(APRIL.filter(r=>r.wr!=null).map(r=>r.wr)),
+    bookings:  sum(APRIL.map(r=>r.bookings||0)),
+    backlog:   sum(APRIL.map(r=>r.backlog||0)),
+    bhrs:      sum(APRIL.map(r=>r.bhrs||0)),
+    rev:       sum(APRIL.map(r=>r.rev||0)),
+    gp:        sum(APRIL.map(r=>r.gp||0)),
+    ni:        sum(APRIL.map(r=>r.ni||0)),
+    costs:     sum(APRIL.map(r=>r.costs||0)),
+    util:      avg(APRIL.filter(r=>r.util!=null).map(r=>r.util)),
+    ovhd:      sum(APRIL.map(r=>r.ovhd||0)),
+  };
+}
+
+// ── Multi-location PMOs are consolidated at the data layer (one row per PMO),
+//    so no runtime rollup is required here.
+
+// ═══════════════════════════ TAB SWITCH ══════════════════════════════════════
+function switchTab(name, btn){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  // Re-render the Company Dashboard each time the tab is opened so the
+  // Revenue Comparison bar chart replays its draw animation on every visit.
+  if (name === 'april') { try { renderApril('ALL'); } catch(e) { console.warn(e); } }
+}
+
+// ═══════════════════════════ PMO NARRATIVE SAVE/LOAD ═════════════════════════
+function saveScorecardNotes(loc, btn){
+  const g = id => (document.getElementById(id)||{}).value || '';
+  const notes = {
+    observations: g('fs-observations'), highlights: g('fs-highlights'),
+    actions:      g('fs-actions'),      lowlights:  g('fs-lowlights'),
+    support1: g('fs-support-1'), support2: g('fs-support-2'),
+    support3: g('fs-support-3'), support4: g('fs-support-4'),
+  };
+  localStorage.setItem('nh_sc_notes_' + loc, JSON.stringify(notes));
+  btn.textContent = 'Saved ✓';
+  btn.classList.add('save-confirm');
+  setTimeout(()=>{ btn.textContent = 'Save Notes'; btn.classList.remove('save-confirm'); }, 1800);
+}
+
+function loadScorecardNotes(loc){
+  const raw = localStorage.getItem('nh_sc_notes_' + loc);
+  if(!raw) return;
+  try {
+    const n = JSON.parse(raw);
+    const set = (id,v) => { const el=document.getElementById(id); if(el) el.value=v||''; };
+    set('fs-observations',n.observations); set('fs-highlights',n.highlights);
+    set('fs-actions',n.actions);           set('fs-lowlights',n.lowlights);
+    set('fs-support-1',n.support1); set('fs-support-2',n.support2);
+    set('fs-support-3',n.support3); set('fs-support-4',n.support4);
+  } catch(e){}
+}
+
+// ═══════════════════════════ SCORECARD TAB ════════════════════════════════════
+let scCharts = {};
+
+function renderScorecard(loc){
+  const row = loc==='ALL' ? getAll() : getRow(loc);
+  if(!row){ document.getElementById('sc-body').innerHTML=''; return; }
+
+  // Get targets for this location (PMOs without published targets resolve to null)
+  const tKey = {
+    'Meridian Central':'Meridian Central','Meridian Southwest':'Meridian Southwest',
+    'Island':null,'Geospatial':null,
+    'NH Gulf':'NH Gulf',
+  }[loc] ?? loc;
+
+  const revTgts = tKey ? TARGETS.revenue[tKey] : null;
+  const gpTgts  = tKey ? TARGETS.gp[tKey]      : null;
+  const niTgts  = tKey ? TARGETS.ni[tKey]      : null;
+  const utTgts  = tKey ? TARGETS.util[tKey]    : null;
+
+  const aprRevTgt = revTgts ? revTgts[3] : null;
+  const aprGpTgt  = gpTgts  ? gpTgts[3]  : null;
+  const aprNiTgt  = niTgts  ? niTgts[3]  : null;
+  const aprUtTgt  = utTgts  ? utTgts[3]  : null;
+
+  // Actuals
+  const revActs = loc==='ALL'
+    ? MONTHS.slice(0,ACTUAL_MONTHS).map((_,i)=>{ const s=Object.values(REV_ACT).reduce((a,arr)=>a+(arr[i]||0),0); return s||null; })
+    : REV_ACT[loc] || null;
+  const gpActs  = loc==='ALL'
+    ? MONTHS.slice(0,ACTUAL_MONTHS).map((_,i)=>{ const s=Object.values(GP_ACT).reduce((a,arr)=>a+(arr[i]||0),0); return s||null; })
+    : GP_ACT[loc]  || null;
+  const niActs  = loc==='ALL'
+    ? MONTHS.slice(0,ACTUAL_MONTHS).map((_,i)=>{ const s=Object.values(NI_ACT).reduce((a,arr)=>a+(arr[i]||0),0); return s||null; })
+    : NI_ACT[loc]  || null;
+  const utActs  = loc==='ALL'
+    ? MONTHS.slice(0,ACTUAL_MONTHS).map((_,i) => avg(APRIL.filter(r=>r.util!=null&&UTIL_ACT[r.loc]).map(r=>(UTIL_ACT[r.loc]||[])[i])))
+    : UTIL_ACT[loc] || null;
+
+  // Build KPI cards HTML
+  const gpMargin = row.rev>0 ? row.gp/row.rev : null;
+  const niMargin = row.rev>0 ? row.ni/row.rev : null;
+
+  let html = `
+  <div class="kpi-grid">
+    <div class="kpi ${revClass(row.rev, aprRevTgt)}" data-tip="Total billed revenue for April across all active projects." data-drill="revenue" onclick="openDrill('revenue','${loc}')">
+      <span class="kpi-drill-arrow"></span>
+      <div class="kpi-body-row">${kpiIcon('revenue')}<div class="kpi-body-text">
+        <div class="kpi-label">Revenue (April)</div>
+        <div class="kpi-val">${fmt$(row.rev)}</div>
+        <div class="kpi-footer">${varBadge(row.rev,aprRevTgt)}<span class="kpi-sub">${aprRevTgt?'Tgt: '+fmt$(aprRevTgt):''}</span></div>
+      </div></div>
+    </div>
+    <div class="kpi ${revClass(row.gp, aprGpTgt)}" data-tip="Revenue minus direct project costs (labor, subconsultants, reimbursables). Measures project-level profitability before overhead.">
+      <div class="kpi-body-row">${kpiIcon('gp')}<div class="kpi-body-text">
+        <div class="kpi-label">Gross Profit (April)</div>
+        <div class="kpi-val">${fmt$(row.gp)}</div>
+        <div class="kpi-footer">${varBadge(row.gp,aprGpTgt)}<span class="kpi-sub">${gpMargin!=null?'Margin: '+fmtPct(gpMargin):''}</span></div>
+      </div></div>
+    </div>
+    <div class="kpi ${revClass(row.ni, aprNiTgt)}" data-tip="Gross profit minus allocated overhead. Reflects the office's bottom-line contribution after all costs.">
+      <div class="kpi-body-row">${kpiIcon('ni')}<div class="kpi-body-text">
+        <div class="kpi-label">Net Income (April)</div>
+        <div class="kpi-val">${fmt$(row.ni)}</div>
+        <div class="kpi-footer">${varBadge(row.ni,aprNiTgt)}<span class="kpi-sub">${niMargin!=null?'Margin: '+fmtPct(niMargin):''}</span></div>
+      </div></div>
+    </div>
+    <div class="kpi ${utilClass(row.util, aprUtTgt||0.75)}" data-tip="Billable hours as a percentage of available hours. Measures how effectively staff time is applied to client work.">
+      <div class="kpi-body-row">${kpiIcon('util')}<div class="kpi-body-text">
+        <div class="kpi-label">Utilization (April)</div>
+        <div class="kpi-val">${fmtPct(row.util)}</div>
+        <div class="kpi-footer">${varBadgePts(row.util,aprUtTgt)}<span class="kpi-sub">${aprUtTgt?'Tgt: '+fmtPct(aprUtTgt):''}</span></div>
+      </div></div>
+    </div>
+    <div class="kpi neutral" data-tip="Total value of contracted work remaining to be earned. Represents secured future revenue already under contract." data-drill="backlog" onclick="openDrill('backlog','${loc}')">
+      <span class="kpi-drill-arrow"></span>
+      <div class="kpi-body-row">${kpiIcon('backlog')}<div class="kpi-body-text">
+        <div class="kpi-label">Backlog</div>
+        <div class="kpi-val">${fmt$(row.backlog)}</div>
+        <div class="kpi-footer"><span class="kpi-sub">Remaining contracted work</span></div>
+      </div></div>
+    </div>
+  </div>
+  <div class="kpi-grid-2">
+    <div class="kpi neutral" data-tip="Total dollar amount of opportunities we have neither won nor lost yet. Reflects the full value of active pursuits currently in pursuit." data-drill="pipeline" onclick="openDrill('pipeline','${loc}')">
+      <span class="kpi-drill-arrow"></span>
+      <div class="kpi-body-row">${kpiIcon('pipeline')}<div class="kpi-body-text">
+        <div class="kpi-label">Pipeline (Total)</div>
+        <div class="kpi-val">${fmt$(row.pipeline)}</div>
+        <div class="kpi-footer"><span class="kpi-sub">Open opportunities</span></div>
+      </div></div>
+    </div>
+    <div class="kpi neutral" data-tip="Dollar value of new proposals submitted during April. Tracks business development volume for the current period.">
+      <div class="kpi-body-row">${kpiIcon('proposals')}<div class="kpi-body-text">
+        <div class="kpi-label">New Proposals (Apr)</div>
+        <div class="kpi-val">${fmt$(row.proposals)}</div>
+        <div class="kpi-footer"><span class="kpi-sub">Created this period</span></div>
+      </div></div>
+    </div>
+    <div class="kpi neutral" data-tip="Total value of contracts awarded month-to-date (April). Measures new work secured this month and is a leading indicator of future revenue." data-drill="bookings" onclick="openDrill('bookings','${loc}')">
+      <span class="kpi-drill-arrow"></span>
+      <div class="kpi-body-row">${kpiIcon('bookings')}<div class="kpi-body-text">
+        <div class="kpi-label">Bookings (MTD)</div>
+        <div class="kpi-val">${fmt$(row.bookings)}</div>
+        <div class="kpi-footer"><span class="kpi-sub">Closed won this month</span></div>
+      </div></div>
+    </div>
+    <div class="kpi neutral" data-tip="Total dollar amount won divided by total proposed dollar amount, calculated using a trailing 12-month period based on close dates." data-drill="winrate" onclick="openDrill('winrate','${loc}')">
+      <span class="kpi-drill-arrow"></span>
+      <div class="kpi-body-row">${kpiIcon('winrate')}<div class="kpi-body-text">
+        <div class="kpi-label">Win Rate (T12M)</div>
+        <div class="kpi-val">${fmtPct(row.wr)}</div>
+        <div class="kpi-footer">
+          <span class="kpi-badge ${row.wr>0.5?'good':row.wr>0.3?'neutral':'bad'}">${row.wr>0.5?'Strong':row.wr>0.3?'Moderate':'Below avg'}</span>
+        </div>
+      </div></div>
+    </div>
+    <div class="kpi neutral" data-tip="Hours charged to overhead or internal administrative tasks that cannot be billed to clients. High values may indicate capacity underutilization or administrative burden.">
+      <div class="kpi-body-row">${kpiIcon('ovhd')}<div class="kpi-body-text">
+        <div class="kpi-label">OVHD Non-Post Hrs</div>
+        <div class="kpi-val">${fmtHrs(row.ovhd)}</div>
+        <div class="kpi-footer"><span class="kpi-sub">Overhead non-posting</span></div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="section-title">FY 2026 Monthly Trends — Actual vs. Target</div>
+
+  <div class="chart-grid-4">
+    <div class="chart-card">
+      <div class="chart-title">Revenue</div>
+      <div class="chart-sub">Actual <span style="display:inline-block;width:10px;height:10px;background:#5a6f44;border-radius:2px;vertical-align:middle"></span> &middot; Target <span style="display:inline-block;width:10px;height:10px;background:#fcf7e6;border:1.5px dashed #8a6f47;border-radius:1px;vertical-align:middle;box-sizing:border-box"></span></div>
+      <div class="chart-wrap"><canvas id="sc-rev"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Gross Profit</div>
+      <div class="chart-sub">Actual <span style="display:inline-block;width:10px;height:10px;background:#5a6f44;border-radius:2px;vertical-align:middle"></span> &middot; Target <span style="display:inline-block;width:10px;height:10px;background:#fcf7e6;border:1.5px dashed #8a6f47;border-radius:1px;vertical-align:middle;box-sizing:border-box"></span></div>
+      <div class="chart-wrap"><canvas id="sc-gp"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Net Income</div>
+      <div class="chart-sub">Actual <span style="display:inline-block;width:10px;height:10px;background:#5a6f44;border-radius:2px;vertical-align:middle"></span> &middot; Target <span style="display:inline-block;width:10px;height:10px;background:#fcf7e6;border:1.5px dashed #8a6f47;border-radius:1px;vertical-align:middle;box-sizing:border-box"></span></div>
+      <div class="chart-wrap"><canvas id="sc-ni"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Utilization</div>
+      <div class="chart-sub">${utActs?(()=>{const n=utActs.filter(v=>v!=null).length;return 'Jan–'+MONTHS[n-1]+' actuals';})():'Target shown'} · Hrs (right)</div>
+      <div class="chart-wrap"><canvas id="sc-util"></canvas></div>
+    </div>
+  </div>
+
+  <div class="section-title" style="margin-top:28px">PMO Narrative</div>
+
+  <div class="foursquare-grid">
+    <div class="foursquare-card fs-observations">
+      <div class="foursquare-label">Key Observations / Critical Trends</div>
+      <textarea id="fs-observations" class="foursquare-ta" placeholder="Describe key observations and critical trends for this period…"></textarea>
+    </div>
+    <div class="foursquare-card fs-highlight">
+      <div class="foursquare-label">Highlights</div>
+      <textarea id="fs-highlights" class="foursquare-ta" placeholder="What went well? Notable wins, strong performance, positive momentum…"></textarea>
+    </div>
+    <div class="foursquare-card fs-actions">
+      <div class="foursquare-label">Go-Forward Actions</div>
+      <textarea id="fs-actions" class="foursquare-ta" placeholder="Specific actions planned for the next period. Who owns what?"></textarea>
+    </div>
+    <div class="foursquare-card fs-lowlight">
+      <div class="foursquare-label">Lowlights</div>
+      <textarea id="fs-lowlights" class="foursquare-ta" placeholder="Challenges, misses, areas of concern…"></textarea>
+    </div>
+  </div>
+
+  <div class="section-title" style="margin-top:4px">Support Requests</div>
+
+  <div class="support-grid">
+    <div class="support-card">
+      <div class="support-card-label">Priorities &amp; Actions</div>
+      <div class="support-q">What support do you need to make these priorities and actions successful?</div>
+      <textarea id="fs-support-1" class="foursquare-ta" placeholder="Describe the support needed…"></textarea>
+    </div>
+    <div class="support-card">
+      <div class="support-card-label">Financial Performance</div>
+      <div class="support-q">What support do you need to improve financial performance or address budget variances?</div>
+      <textarea id="fs-support-2" class="foursquare-ta" placeholder="Describe the support needed…"></textarea>
+    </div>
+    <div class="support-card">
+      <div class="support-card-label">Pipeline &amp; Business Development</div>
+      <div class="support-q">What support do you need to strengthen the pipeline and secure upcoming work?</div>
+      <textarea id="fs-support-3" class="foursquare-ta" placeholder="Describe the support needed…"></textarea>
+    </div>
+    <div class="support-card">
+      <div class="support-card-label">Project Delivery</div>
+      <div class="support-q">What support do you need to ensure projects are delivered on time and within budget?</div>
+      <textarea id="fs-support-4" class="foursquare-ta" placeholder="Describe the support needed…"></textarea>
+    </div>
+  </div>
+
+  <div style="margin-top:4px;margin-bottom:28px;text-align:right">
+    <button class="save-btn" onclick="saveScorecardNotes('${loc}', this)">Save Notes</button>
+  </div>
+
+`;
+
+  document.getElementById('sc-body').innerHTML = html;
+
+  // Destroy old charts
+  Object.values(scCharts).forEach(c=>c.destroy());
+  scCharts = {};
+
+  // ── Revenue chart ─────────────────────────────────────────────────────────
+  {
+    const tgtBars = revTgts || Array(12).fill(null);
+    const actBars = Array(12).fill(null);
+    if(revActs){ revActs.forEach((v,i)=>actBars[i]=v); }
+    else { actBars[3] = row.rev; } // just April actual
+
+    scCharts.rev = new Chart(document.getElementById('sc-rev'),{
+      type:'bar',
+      data:{
+        labels:MONTHS,
+        datasets:[
+          // Target bar — wider, light, sits behind
+          {label:'Target',data:tgtBars,backgroundColor:'#fcf7e6',borderRadius:1,categoryPercentage:0.82,barPercentage:1,grouped:false,order:2,borderWidth:0},
+          // Actual bar — olive green, same width as target, sits on top
+          {label:'Actual',data:actBars,backgroundColor:'#5a6f44',borderRadius:1,categoryPercentage:0.82,barPercentage:1,grouped:false,order:1},
+        ]
+      },
+      options:{...barOpts(true), plugins:{legend:{display:false}}}
+    });
+  }
+
+  // ── Utilization chart ─────────────────────────────────────────────────────
+  {
+    const tgt = utTgts || Array(12).fill(null);
+    const actLine = Array(12).fill(null);
+    if(utActs){ utActs.forEach((v,i)=>{ if(v!=null) actLine[i]=v; }); }
+    else { if(row.util!=null) actLine[3]=row.util; }
+
+    // Billable hours (secondary axis) — look up by loc name
+    const bhrRaw = loc==='ALL'
+      ? MONTHS.map((_,i)=>{ const s=APRIL.reduce((a,r)=>{ const arr=BILLABLE_HRS[r.loc]||BILLABLE_HRS[APRIL_TO_UTIL[r.loc]]||[]; return a+(arr[i]||0); },0); return s>0?s:null; })
+      : (BILLABLE_HRS[APRIL_TO_UTIL[loc]||loc] || BILLABLE_HRS[loc] || Array(12).fill(null)).map(v=>v>0?v:null);
+    // Clip both hours and utilization line to subject month (last month with actuals)
+    const lastActIdx = actLine.reduce((last,v,i)=>v!=null?i:last, -1);
+    const bhrData = bhrRaw.map((v,i)=>i<=lastActIdx?v:null);
+
+    scCharts.util = new Chart(document.getElementById('sc-util'),{
+      type:'bar',
+      data:{
+        labels:MONTHS,
+        datasets:[
+          {type:'line',label:'Utilization Actual',data:actLine,borderColor:'#382e30',backgroundColor:'rgba(56,46,48,.08)',fill:false,tension:.3,pointRadius:4,pointBackgroundColor:'#382e30',spanGaps:false,yAxisID:'yUtil',order:1,borderWidth:2},
+          {type:'line',label:'Utilization Target',data:tgt,borderColor:'#bca784',borderDash:[5,4],pointRadius:0,tension:.2,fill:false,yAxisID:'yUtil',order:2,borderWidth:1.5},
+          {type:'bar',label:'Billable Hours',data:bhrData,backgroundColor:'rgba(90,111,68,.4)',borderColor:'rgba(90,111,68,.95)',borderWidth:1.5,borderRadius:3,categoryPercentage:0.92,barPercentage:1,yAxisID:'yHrs',order:3},
+        ]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{
+          label:c=> c.dataset.yAxisID==='yHrs'
+            ? 'Billable Hrs: '+Math.round(c.raw).toLocaleString('en-US')
+            : c.dataset.label+': '+(c.raw*100).toFixed(1)+'%'
+        }}},
+        scales:{
+          x:{grid:{display:false},ticks:{font:{size:11}}},
+          yUtil:{position:'left',grid:{color:'#f1f5f9'},ticks:{font:{size:11},callback:v=>(v*100).toFixed(0)+'%'}},
+          yHrs:{position:'right',grid:{drawOnChartArea:false},ticks:{font:{size:11},callback:v=>Math.round(v).toLocaleString('en-US')}}
+        }
+      }
+    });
+  }
+
+  // ── GP chart ──────────────────────────────────────────────────────────────
+  {
+    const tgtBars = gpTgts || Array(12).fill(null);
+    const actBars = Array(12).fill(null);
+    if(gpActs){ gpActs.forEach((v,i)=>actBars[i]=v); }
+    else { actBars[3] = row.gp; }
+    scCharts.gp = new Chart(document.getElementById('sc-gp'),{
+      type:'bar',
+      data:{labels:MONTHS,datasets:[
+        // Target bar — wider, light, sits behind
+        {label:'Target',data:tgtBars,backgroundColor:(ctx)=>{
+          const v=ctx.raw; return v==null?null: v>=0?'#fcf7e6':'#feebeb';
+        },borderRadius:1,categoryPercentage:0.82,barPercentage:1,grouped:false,order:2,borderWidth:0},
+        // Actual bar — same width as target, sits on top
+        {label:'Actual',data:actBars,backgroundColor:(ctx)=>{
+          const v=ctx.raw; return v==null?null: v>=0?'#5a6f44':'#c87662';
+        },borderRadius:1,categoryPercentage:0.82,barPercentage:1,grouped:false,order:1},
+      ]},
+      options:{...barOpts(true), plugins:{legend:{display:false}}}
+    });
+  }
+
+  // ── NI chart ──────────────────────────────────────────────────────────────
+  {
+    const tgtBars = niTgts || Array(12).fill(null);
+    const actBars = Array(12).fill(null);
+    if(niActs){ niActs.forEach((v,i)=>actBars[i]=v); }
+    else { actBars[3] = row.ni; }
+    scCharts.ni = new Chart(document.getElementById('sc-ni'),{
+      type:'bar',
+      data:{labels:MONTHS,datasets:[
+        // Target bar — wider, light, sits behind
+        {label:'Target',data:tgtBars,backgroundColor:(ctx)=>{
+          const v=ctx.raw; return v==null?null: v>=0?'#fcf7e6':'#feebeb';
+        },borderRadius:1,categoryPercentage:0.82,barPercentage:1,grouped:false,order:2,borderWidth:0},
+        // Actual bar — same width as target, sits on top
+        {label:'Actual',data:actBars,backgroundColor:(ctx)=>{
+          const v=ctx.raw; return v==null?null: v>=0?'#5a6f44':'#c87662';
+        },borderRadius:1,categoryPercentage:0.82,barPercentage:1,grouped:false,order:1},
+      ]},
+      options:{...barOpts(true), plugins:{legend:{display:false}}}
+    });
+  }
+
+  // Load any previously saved narrative notes for this location
+  loadScorecardNotes(loc);
+}
+
+// ═══════════════════════════ KPI DRILL-DOWN MODAL ═══════════════════════════
+const DRILL_DATA = (typeof window !== 'undefined' && window.CH_DRIVERS) || {bookings:[],winrate:[],backlog:[],revenue:[]};
+
+// Column schemas per metric. label / key / class ('num' for right-aligned numeric)
+const DRILL_SCHEMA = {
+  revenue: {
+    title: 'April Revenue by Project',
+    subtitle: 'Project-level billed revenue for April 2026',
+    totalLabel: 'Total Apr Revenue',
+    totalKey: 'apr',
+    cols: [
+      {label:'Project',      key:'project',      cls:''},
+      {label:'Dim ID',       key:'dimension_id', cls:'muted',  w:80},
+      {label:'Customer',     key:'customer',     cls:''},
+      {label:'Project Type', key:'project_type', cls:'muted',  w:100},
+      {label:'Sector',       key:'sector',       cls:'muted',  w:120},
+      {label:'April Rev',    key:'apr',          cls:'num',    fmt:'$', w:120},
+      {label:'YTD Rev',      key:'ytd',          cls:'num',    fmt:'$', w:120},
+    ],
+    defaultSort: {col:'apr', dir:'desc'},
+  },
+  bookings: {
+    title: 'April Bookings by Opportunity',
+    subtitle: 'Closed Won opportunities with close dates in April 2026',
+    totalLabel: 'Total April Bookings',
+    totalKey: 'amount',
+    cols: [
+      {label:'Account',    key:'account',     cls:''},
+      {label:'Opportunity',key:'opportunity', cls:''},
+      {label:'Owner',      key:'owner',       cls:'muted'},
+      {label:'Lead Source',key:'lead_source', cls:'muted',  w:140},
+      {label:'Close Date', key:'close_date',  cls:'muted',  w:100},
+      {label:'Amount',     key:'amount',      cls:'num',    fmt:'$', w:130},
+    ],
+    defaultSort: {col:'amount', dir:'desc'},
+  },
+  winrate: {
+    title: 'Trailing 12-Month Win Rate Detail',
+    subtitle: 'Closed Won + Closed Lost opportunities · May 2025 through April 2026',
+    totalLabel: 'Win Rate (by $)',
+    totalKey: 'amount',
+    cols: [
+      {label:'Stage',      key:'stage',         cls:'',     w:120, render:'stageBadge'},
+      {label:'Account',    key:'account',       cls:''},
+      {label:'Opportunity',key:'opportunity',   cls:''},
+      {label:'FP',         key:'fiscal_period', cls:'muted', w:80},
+      {label:'Close Date', key:'close_date',    cls:'muted', w:100},
+      {label:'Amount',     key:'amount',        cls:'num',  fmt:'$', w:130},
+    ],
+    defaultSort: {col:'close_date', dir:'desc'},
+  },
+  backlog: {
+    title: 'Backlog Detail — Active Projects',
+    subtitle: 'Project-level backlog = Contract Value − Revenue Recognized ITD (positive values only)',
+    totalLabel: 'Total Backlog',
+    totalKey: 'backlog',
+    dataSource: 'backlog',
+    cols: [
+      {label:'Project ID',   key:'project_id',         cls:'muted',  w:110},
+      {label:'Project Name', key:'project_name',       cls:''},
+      {label:'Billing',      key:'billing_type',       cls:'muted',  w:110},
+      {label:'Status',       key:'status',             cls:'muted',  w:100},
+      {label:'Project Mgr',  key:'pm',                 cls:'muted',  w:150},
+      {label:'Contract $',   key:'contract_value',     cls:'num',    fmt:'$', w:130},
+      {label:'Rev Recog ITD',key:'revenue_recognized', cls:'num',    fmt:'$', w:130},
+      {label:'Backlog',      key:'backlog',            cls:'num',    fmt:'$', w:130},
+    ],
+    defaultSort: {col:'backlog', dir:'desc'},
+  },
+  pipeline: {
+    title: 'Pipeline Detail — Open Opportunities',
+    subtitle: 'All active pursuits not yet Closed Won or Closed Lost',
+    totalLabel: 'Total Pipeline',
+    totalKey: 'amount',
+    dataSource: 'pipeline',
+    cols: [
+      {label:'Stage',      key:'stage',       cls:'muted',  w:110},
+      {label:'Account',    key:'account',     cls:''},
+      {label:'Opportunity',key:'opportunity', cls:''},
+      {label:'Owner',      key:'owner',       cls:'muted'},
+      {label:'Close Date', key:'close_date',  cls:'muted',  w:100},
+      {label:'Prob.',      key:'probability', cls:'num',    fmt:'%',  w:70},
+      {label:'Amount',     key:'amount',      cls:'num',    fmt:'$', w:120},
+      {label:'Weighted',   key:'weighted',    cls:'num',    fmt:'$', w:120},
+    ],
+    defaultSort: {col:'amount', dir:'desc'},
+  },
+};
+
+let drillState = { metric:null, loc:null, sort:null, search:'' };
+
+function openDrill(metric, loc) {
+  const schema = DRILL_SCHEMA[metric];
+  if (!schema) return;
+  drillState.metric = metric;
+  drillState.loc = loc;
+  drillState.sort = {...schema.defaultSort};
+  drillState.search = '';
+
+  document.getElementById('drill-title-main').textContent = schema.title;
+  document.getElementById('drill-title-sub').textContent  = loc==='ALL' ? 'All Offices' : loc;
+  document.getElementById('drill-search').value = '';
+
+  renderDrillTable();
+  document.getElementById('drill-mask').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDrill() {
+  document.getElementById('drill-mask').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e=>{
+  if (e.key === 'Escape' && document.getElementById('drill-mask').classList.contains('open')) closeDrill();
+});
+
+function _drillRows() {
+  const m = drillState.metric;
+  if (!m) return [];
+  const schema = DRILL_SCHEMA[m] || {};
+  const sourceKey = schema.dataSource || m;
+  const all = DRILL_DATA[sourceKey] || [];
+  // Filter by PMO (ALL shows all rows)
+  const loc = drillState.loc;
+  let rows = loc==='ALL' ? all.slice() : all.filter(r => r.pmo === loc);
+  // Text search across visible columns
+  const q = (drillState.search || '').toLowerCase().trim();
+  if (q) {
+    rows = rows.filter(r => Object.values(r).some(v => String(v||'').toLowerCase().includes(q)));
+  }
+  // Sort
+  const s = drillState.sort;
+  if (s) {
+    const col = s.col, dir = s.dir==='asc'?1:-1;
+    rows.sort((a,b)=>{
+      const va = a[col], vb = b[col];
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (typeof va === 'number' && typeof vb === 'number') return (va-vb)*dir;
+      return String(va).localeCompare(String(vb)) * dir;
+    });
+  }
+  return rows;
+}
+
+function _fmtCell(val, fmt) {
+  if (val == null || val === '') return '<span style="color:var(--dim)">—</span>';
+  if (fmt === '$') {
+    if (typeof val !== 'number') val = parseFloat(val) || 0;
+    return (val<0?'-':'') + '$' + Math.round(Math.abs(val)).toLocaleString('en-US');
+  }
+  if (fmt === '%') {
+    if (typeof val !== 'number') val = parseFloat(val) || 0;
+    return (val*100).toFixed(0) + '%';
+  }
+  return String(val).replace(/</g,'&lt;');
+}
+
+function _stageBadge(stage) {
+  if (stage === 'Closed Won') return '<span class="badge-won">Won</span>';
+  if (stage === 'Closed Lost') return '<span class="badge-lost">Lost</span>';
+  return `<span class="badge-open">${String(stage||'').replace(/</g,'&lt;')}</span>`;
+}
+
+function _sortColClick(colKey) {
+  if (drillState.sort && drillState.sort.col === colKey) {
+    drillState.sort.dir = drillState.sort.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    drillState.sort = {col: colKey, dir: 'desc'};
+  }
+  renderDrillTable();
+}
+
+function renderDrillTable() {
+  drillState.search = (document.getElementById('drill-search')?.value) || '';
+  const schema = DRILL_SCHEMA[drillState.metric];
+  if (!schema) return;
+  const rows = _drillRows();
+  const body = document.getElementById('drill-body');
+  const stat = document.getElementById('drill-stat');
+
+  // Compute summary stats
+  let html = '';
+  if (rows.length === 0) {
+    html = `<div class="drill-empty">No records match this filter for ${drillState.loc==='ALL'?'All Offices':drillState.loc}.</div>`;
+    stat.innerHTML = '<span><strong>0</strong> rows</span>';
+  } else {
+    // Build header
+    const ths = schema.cols.map(c => {
+      const sortCls = drillState.sort && drillState.sort.col === c.key
+        ? (drillState.sort.dir === 'asc' ? 'sort-asc' : 'sort-desc') : '';
+      const w = c.w ? ` style="width:${c.w}px"` : '';
+      return `<th class="${c.cls} ${sortCls}"${w} onclick="_sortColClick('${c.key}')">${c.label}</th>`;
+    }).join('');
+
+    // Build rows
+    const trs = rows.map(r => {
+      const tds = schema.cols.map(c => {
+        if (c.render === 'stageBadge') return `<td class="${c.cls}">${_stageBadge(r[c.key])}</td>`;
+        return `<td class="${c.cls}">${_fmtCell(r[c.key], c.fmt)}</td>`;
+      }).join('');
+      return `<tr>${tds}</tr>`;
+    }).join('');
+
+    html = `<table class="drill-table"><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`;
+
+    // Footer stats
+    const totalKey = schema.totalKey;
+    const total = rows.reduce((a,r)=> a + (typeof r[totalKey]==='number'?r[totalKey]:0), 0);
+    let extraStat = '';
+    if (drillState.metric === 'winrate') {
+      const wonAmt = rows.filter(r=>r.stage==='Closed Won').reduce((a,r)=>a+(r.amount||0),0);
+      const lostAmt = rows.filter(r=>r.stage==='Closed Lost').reduce((a,r)=>a+(r.amount||0),0);
+      const denom = wonAmt + lostAmt;
+      const wr = denom>0 ? wonAmt/denom : 0;
+      const wonCt = rows.filter(r=>r.stage==='Closed Won').length;
+      const lostCt = rows.length - wonCt;
+      extraStat = ` <span>Won <strong>${wonCt}</strong> ($${Math.round(wonAmt).toLocaleString()})</span>`
+                + ` <span>Lost <strong>${lostCt}</strong> ($${Math.round(lostAmt).toLocaleString()})</span>`
+                + ` <span>Win Rate <strong>${(wr*100).toFixed(1)}%</strong></span>`;
+    } else if (drillState.metric === 'backlog') {
+      const wAmt = rows.reduce((a,r)=>a+(r.weighted||0),0);
+      extraStat = ` <span>Weighted <strong>$${Math.round(wAmt).toLocaleString()}</strong></span>`;
+    } else if (drillState.metric === 'revenue') {
+      const ytd = rows.reduce((a,r)=>a+(r.ytd||0),0);
+      extraStat = ` <span>YTD <strong>$${Math.round(ytd).toLocaleString()}</strong></span>`;
+    }
+    stat.innerHTML = `<span><strong>${rows.length}</strong> rows</span>`
+                   + ` <span>${schema.totalLabel} <strong>$${Math.round(total).toLocaleString()}</strong></span>`
+                   + extraStat;
+  }
+  body.innerHTML = html;
+}
+
+// ═══════════════════════════ APRIL DASHBOARD TAB ══════════════════════════════
+let apCharts = {};
+
+function renderApril(loc){
+  const isAll = loc==='ALL';
+  const rows = isAll ? APRIL : APRIL.filter(r=>r.loc===loc);
+
+  const totRev  = sum(rows.map(r=>r.rev||0));
+  const totGP   = sum(rows.map(r=>r.gp||0));
+  const totNI   = sum(rows.map(r=>r.ni||0));
+  const totPipe = sum(rows.map(r=>r.pipeline||0));
+  const totBook = sum(rows.map(r=>r.bookings||0));
+  const totBack = sum(rows.map(r=>r.backlog||0));
+  const avgUtil = avg(rows.filter(r=>r.util!=null).map(r=>r.util));
+  const avgWR   = avg(rows.filter(r=>r.wr!=null).map(r=>r.wr));
+  const totBhrs = sum(rows.map(r=>r.bhrs||0));
+  const ovhdTot = sum(rows.map(r=>r.ovhd||0));
+  const gpMargin = totRev>0?totGP/totRev:null;
+
+  // April targets (index 3) — company total = sum of all offices
+  const getTotalAprTgt = (sec) =>
+    sum(Object.values(TARGETS[sec]).map(arr=> arr&&arr[3]?arr[3]:0));
+  const tgtRev = getTotalAprTgt('revenue');
+  const tgtGP  = getTotalAprTgt('gp');
+  const tgtNI  = getTotalAprTgt('ni');
+
+  let html = `
+  <div class="kpi-grid" style="margin-bottom:18px">
+    <div class="kpi ${revClass(totRev,tgtRev)}">
+      <div class="kpi-body-row">${kpiIcon('revenue')}<div class="kpi-body-text">
+        <div class="kpi-label">Total Revenue (April)</div>
+        <div class="kpi-val">${fmt$(totRev)}</div>
+        <div class="kpi-footer">${varBadge(totRev,tgtRev)}<span class="kpi-sub">${tgtRev?'Tgt: '+fmt$(tgtRev):''}</span></div>
+      </div></div>
+    </div>
+    <div class="kpi ${revClass(totGP,tgtGP)}">
+      <div class="kpi-body-row">${kpiIcon('gp')}<div class="kpi-body-text">
+        <div class="kpi-label">Gross Profit (April)</div>
+        <div class="kpi-val">${fmt$(totGP)}</div>
+        <div class="kpi-footer">${varBadge(totGP,tgtGP)}<span class="kpi-sub">${gpMargin!=null?'Margin: '+fmtPct(gpMargin):''}</span></div>
+      </div></div>
+    </div>
+    <div class="kpi ${revClass(totNI,tgtNI)}">
+      <div class="kpi-body-row">${kpiIcon('ni')}<div class="kpi-body-text">
+        <div class="kpi-label">Net Income (April)</div>
+        <div class="kpi-val">${fmt$(totNI)}</div>
+        <div class="kpi-footer">${varBadge(totNI,tgtNI)}<span class="kpi-sub">${tgtNI?'Tgt: '+fmt$(tgtNI):''}</span></div>
+      </div></div>
+    </div>
+    <div class="kpi neutral">
+      <div class="kpi-body-row">${kpiIcon('pipeline')}<div class="kpi-body-text">
+        <div class="kpi-label">Pipeline (Total)</div>
+        <div class="kpi-val">${fmt$(totPipe)}</div>
+        <div class="kpi-footer"><span class="kpi-sub">All open opportunities</span></div>
+      </div></div>
+    </div>
+    <div class="kpi neutral">
+      <div class="kpi-body-row">${kpiIcon('bookings')}<div class="kpi-body-text">
+        <div class="kpi-label">Bookings (MTD)</div>
+        <div class="kpi-val">${fmt$(totBook)}</div>
+        <div class="kpi-footer"><span class="kpi-sub">Closed won this month</span></div>
+      </div></div>
+    </div>
+  </div>
+  <div class="kpi-grid-2" style="margin-bottom:18px">
+    <div class="kpi neutral">
+      <div class="kpi-body-row">${kpiIcon('backlog')}<div class="kpi-body-text">
+        <div class="kpi-label">Backlog</div>
+        <div class="kpi-val">${fmt$(totBack)}</div>
+        <div class="kpi-footer"><span class="kpi-sub">Remaining contracted work</span></div>
+      </div></div>
+    </div>
+    <div class="kpi ${utilClass(avgUtil,0.75)}">
+      <div class="kpi-body-row">${kpiIcon('util')}<div class="kpi-body-text">
+        <div class="kpi-label">Avg Utilization (April)</div>
+        <div class="kpi-val">${fmtPct(avgUtil)}</div>
+        <div class="kpi-footer"><span class="kpi-sub">Company average</span></div>
+      </div></div>
+    </div>
+    <div class="kpi neutral">
+      <div class="kpi-body-row">${kpiIcon('winrate')}<div class="kpi-body-text">
+        <div class="kpi-label">Win Rate (T12M)</div>
+        <div class="kpi-val">${fmtPct(avgWR)}</div>
+        <div class="kpi-footer"><span class="kpi-sub">Avg across offices</span></div>
+      </div></div>
+    </div>
+    <div class="kpi neutral">
+      <div class="kpi-body-row">${kpiIcon('ovhd')}<div class="kpi-body-text">
+        <div class="kpi-label">Billable Hours (April)</div>
+        <div class="kpi-val">${fmtHrs(totBhrs)}</div>
+        <div class="kpi-footer"><span class="kpi-sub">Total logged</span></div>
+      </div></div>
+    </div>
+    <div class="kpi neutral">
+      <div class="kpi-body-row">${kpiIcon('ovhd')}<div class="kpi-body-text">
+        <div class="kpi-label">OVHD Non-Post (April)</div>
+        <div class="kpi-val">${fmtHrs(ovhdTot)}</div>
+        <div class="kpi-footer"><span class="kpi-sub">Overhead non-posting hrs</span></div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="section-title">Revenue Comparison — All Locations</div>
+  <div class="chart-card" style="margin-bottom:18px">
+    <div style="font-size:11px;color:var(--dim);margin-bottom:10px">
+      Actual <span style="display:inline-block;width:10px;height:10px;background:#5a6f44;border-radius:2px;vertical-align:middle"></span>
+      &middot; Target <span style="display:inline-block;width:10px;height:10px;background:#fcf7e6;border:1.5px dashed #8a6f47;border-radius:1px;vertical-align:middle;box-sizing:border-box"></span>
+    </div>
+    <div class="chart-wrap-xl"><canvas id="ap-rev-chart"></canvas></div>
+  </div>
+
+  <div class="section-title">All Locations Detail — April 2026</div>
+  <div class="april-table-wrap">
+    <table class="april-table">
+      <thead>
+        <tr>
+          <th style="text-align:left">Location</th>
+          <th>Proposals</th><th>Pipeline</th><th>Win Rate (T12M)</th>
+          <th>Bookings</th><th>Backlog</th><th>Bill. Hours</th>
+          <th>Revenue</th><th>Gross Profit</th><th>Net Income</th>
+          <th>Project Costs</th><th>Utilization</th><th>OVHD Non-Post Hrs</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${[...rows].sort((a,b)=>(b.rev||0)-(a.rev||0)||(b.gp||0)-(a.gp||0)||(b.ni||0)-(a.ni||0)||(b.util||0)-(a.util||0)).map(r=>`<tr>
+            <td style="text-align:left;font-weight:500">${r.loc}</td>
+            <td>${tblMoney(r.proposals)}</td>
+            <td>${tblMoney(r.pipeline)}</td>
+            <td class="${r.wr>=0.5?'cell-good':r.wr!=null&&r.wr<0.25?'cell-bad':''}">${fmtPct(r.wr)}</td>
+            <td>${tblMoney(r.bookings)}</td>
+            <td>${tblMoney(r.backlog)}</td>
+            <td>${fmtHrs(r.bhrs)}</td>
+            <td>${tblMoney(r.rev)}</td>
+            <td class="${r.gp>=0?'cell-good':'cell-bad'}">${tblMoney(r.gp)}</td>
+            <td class="${r.ni>=0?'cell-good':'cell-bad'}">${tblMoney(r.ni)}</td>
+            <td>${tblMoney(r.costs)}</td>
+            <td class="${r.util!=null&&r.util>=0.75?'cell-good':r.util!=null&&r.util<0.6?'cell-bad':''}">${fmtPct(r.util)}</td>
+            <td>${fmtHrs(r.ovhd)}</td>
+          </tr>`).join('')}
+        <tr class="total-row">
+          <td style="text-align:left">TOTAL / AVG</td>
+          <td>${tblMoney(sum(rows.map(r=>r.proposals||0)))}</td>
+          <td>${tblMoney(totPipe)}</td>
+          <td>${fmtPct(avgWR)}</td>
+          <td>${tblMoney(totBook)}</td>
+          <td>${tblMoney(totBack)}</td>
+          <td>${fmtHrs(totBhrs)}</td>
+          <td>${tblMoney(totRev)}</td>
+          <td class="${totGP>=0?'cell-good':'cell-bad'}">${tblMoney(totGP)}</td>
+          <td class="${totNI>=0?'cell-good':'cell-bad'}">${tblMoney(totNI)}</td>
+          <td>${tblMoney(sum(rows.map(r=>r.costs||0)))}</td>
+          <td>${fmtPct(avgUtil)}</td>
+          <td>${fmtHrs(ovhdTot)}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+`;
+
+  document.getElementById('ap-body').innerHTML = html;
+
+  Object.values(apCharts).forEach(c=>c.destroy());
+  apCharts = {};
+
+  // Revenue chart — April actual bullet-style overlay vs target.
+  {
+    const sorted = [...rows].sort((a,b)=>(b.rev||0)-(a.rev||0));
+    const aprTargets = sorted.map(r => {
+      const t = TARGETS.revenue[r.loc];
+      return t && t[3] != null ? t[3] : null;
+    });
+    const aprActuals = sorted.map(r => r.rev || 0);
+    apCharts.rev = new Chart(document.getElementById('ap-rev-chart'),{
+      type:'bar',
+      data:{
+        labels: sorted.map(r=>r.loc),
+        datasets:[
+          // Target — wider parchment bar with dashed outline (plugin draws the dashes)
+          {label:'Target',data:aprTargets,backgroundColor:'#fcf7e6',borderRadius:1,categoryPercentage:0.92,barPercentage:1,grouped:false,order:2,borderWidth:0},
+          // Actual — narrower olive bar centered inside the target
+          {label:'Actual',data:aprActuals,backgroundColor:'#5a6f44',borderRadius:1,categoryPercentage:0.5,barPercentage:1,grouped:false,order:1},
+        ]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{
+          legend:{display:false},
+          tooltip:{callbacks:{label:c=> c.dataset.label+': $'+Math.round(c.raw).toLocaleString('en-US')}}
+        },
+        scales:{
+          x:{grid:{display:false},ticks:{font:{size:10},maxRotation:45,minRotation:30}},
+          y:{grid:{color:'#f1f5f9'},ticks:{font:{size:11},callback:v=>'$'+Math.round(v/1000).toLocaleString()+'K'}}
+        }
+      }
+    });
+  }
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+(function(){
+  const sc = document.getElementById('sc-filter');
+  // Populate dropdown with every active After-PMO from APRIL.
+  APRIL.filter(r=> r.util!=null || (r.rev||0)>0).forEach(r=>{ sc.add(new Option(r.loc,r.loc)); });
+  const firstLoc = sc.options[0] && sc.options[0].value;
+  if (firstLoc) {
+    sc.value = firstLoc;
+    try { renderScorecard(firstLoc); } catch(e) { console.warn(e); }
+  }
+  try { renderApril('ALL'); } catch(e) { console.warn(e); }
+})();
+</script>
+</body>
+</html>

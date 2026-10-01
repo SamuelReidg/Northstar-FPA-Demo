@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Revenue Forecast — Northstar Heritage</title>
+<script src="revenue_forecast_data.js"></script>
+<style>
+:root{
+  --bg:#f4f3f0; --paper:#faf9f7; --panel:#ffffff;
+  --border:#e7e5e0; --border-strong:#dcd9d2;
+  --ink:#23272e; --muted:#5f6670; --dim:#7c7f86;
+  --blue:#5f7d99; --blue-deep:#4f6f8c; --blue-soft:#eaeef3; --navy:#2b3a4a;
+  --stone:#a8a299; --clay:#b3805f; --sage:#7d9b8a;
+  --good:#7d9b7f; --warn:#c2a35f; --bad:#b3705f;
+  --gold:#b08a4f; --teal:#5b8f8a; --plum:#7a5f86;
+  --sans:"Helvetica Neue",Helvetica,Arial,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --shadow:0 1px 2px rgba(35,39,46,.04),0 8px 22px rgba(35,39,46,.05);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:radial-gradient(circle at 20% 0%, rgba(255,255,255,.9), transparent 34%),linear-gradient(135deg,#f7f8f6 0%,#ecf0f1 48%,#dde4e8 100%);background-attachment:fixed;color:var(--ink);font-family:var(--sans);font-size:13px;-webkit-font-smoothing:antialiased;letter-spacing:.1px}
+a{color:inherit;text-decoration:none}
+.app{display:grid;grid-template-columns:172px 1fr;min-height:100vh}
+/* sidebar */
+.side{position:sticky;top:4px;overflow:hidden;margin:4px 0 4px 8px;height:calc(100vh - 8px);padding:28px 13px 18px;box-sizing:border-box;border-radius:20px;background:radial-gradient(circle at 50% 40%, rgba(255,255,255,.30), transparent 60%),linear-gradient(180deg,#edf0f4 0%,#e3e8ee 52%,#d8e0e8 100%);border:1px solid rgba(255,255,255,.85);box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 20px 60px rgba(55,68,88,.14);display:flex;flex-direction:column}
+.brand{position:relative;display:flex;align-items:center;gap:8px;margin-bottom:24px}
+.brand .logo{width:26px;height:26px;flex:0 0 26px}
+.brand .bt{font-weight:700;letter-spacing:.1em;font-size:13.5px;line-height:1.05;color:#23272e}
+.brand .bs{font-size:8px;letter-spacing:.1em;color:#5f7d99;margin-top:5px;text-transform:uppercase;font-weight:600}
+.nav{position:relative;display:flex;flex-direction:column;gap:6px;flex:1}
+.nav a{display:flex;align-items:center;gap:13px;height:46px;padding:0 14px;border-radius:11px;color:#23272e;font-size:14px;font-weight:600;cursor:pointer;letter-spacing:.2px;border:1px solid transparent;transition:background .15s,border-color .15s}
+.nav a svg{width:18px;height:18px;stroke:#4f6f8c;fill:none;stroke-width:1.6;flex:0 0 18px;opacity:.9}
+.nav a:hover{background:rgba(255,255,255,.45)}
+.nav a.active{background:linear-gradient(180deg, rgba(255,255,255,.94), rgba(247,249,251,.84));border:1px solid rgba(255,255,255,.95);box-shadow:0 12px 24px rgba(45,58,75,.10),inset 0 1px 0 rgba(255,255,255,.95)}
+.side .foot{position:relative;padding:18px 0 2px;margin-top:8px;border-top:1px solid rgba(120,135,124,.22);color:var(--dim);font-size:10.5px;line-height:1.7}
+.nav a.back{height:40px;font-size:13px;color:var(--muted);margin-top:auto}
+/* main */
+.main{min-width:0;display:flex;flex-direction:column}
+.topbar{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:16px;margin:9px 32px 0;padding:9px 22px;background:radial-gradient(circle at 85% 15%, rgba(255,255,255,.20), transparent 30%),linear-gradient(90deg,#496075 0%,#374a5e 48%,#2b3a4a 100%);border-radius:16px;box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 14px 32px rgba(33,45,60,.18)}
+.hd-left{display:flex;align-items:center;gap:13px;min-width:0}
+.hd-logo{width:26px;height:26px;flex:0 0 26px;border-radius:50%;border:1px solid rgba(246,243,236,.28);display:flex;align-items:center;justify-content:center}
+.title-wrap h1{margin:0;font-size:14px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#fff}
+.title-wrap p{margin:2px 0 0;color:rgba(255,255,255,.72);font-size:9px;letter-spacing:.5px}
+.tb-right{display:flex;gap:10px;align-items:center}
+.tb-btn{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);color:#fff;border-radius:9px;padding:7px 13px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;letter-spacing:.2px}
+.tb-btn:hover{background:rgba(255,255,255,.22)}
+.tb-btn svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:1.8}
+.content{padding:14px 32px 48px}
+/* filter bar */
+.filters{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+.fl{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:9px 14px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px;position:relative}
+.fl .fic{width:30px;height:30px;border-radius:9px;background:var(--blue-soft);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.fl .fic svg{width:17px;height:17px;stroke:var(--blue-deep);fill:none;stroke-width:1.7}
+.fl .fbody{flex:1;min-width:0}
+.fl .flab{font-size:8.5px;letter-spacing:.7px;color:var(--dim);text-transform:uppercase;font-weight:700}
+.flbtn{display:flex;align-items:center;gap:6px;width:100%;border:none;background:transparent;font-family:inherit;font-size:13px;font-weight:600;color:var(--ink);padding:1px 0 0;cursor:pointer;text-align:left}
+.flval{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.flcaret{font-size:9px;color:var(--dim);flex:0 0 auto}
+.fl.flt-active .flval{color:var(--blue-deep)}
+.fl.on{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue-soft)}
+.flmenu{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:60;background:var(--panel);border:1px solid var(--border-strong);border-radius:10px;box-shadow:0 12px 30px rgba(35,39,46,.18);display:flex;flex-direction:column;max-height:300px;overflow:hidden}
+.flmenu[hidden]{display:none}
+.flsrchwrap{padding:8px;border-bottom:1px solid var(--border);background:var(--paper)}
+.flsrch{width:100%;box-sizing:border-box;padding:6px 9px;font-family:inherit;font-size:12px;color:var(--ink);background:#fff;border:1px solid var(--border-strong);border-radius:6px;outline:none}
+.flsrch:focus{border-color:var(--blue)}
+.flopts{overflow:auto;padding:5px;flex:1;min-height:0}
+.flopt{padding:6px 10px;font-size:12px;color:var(--ink);border-radius:6px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.flopt:hover,.flopt.kb{background:var(--blue-soft)}
+.flopt.sel{background:var(--blue-deep);color:#fff;font-weight:700}
+/* kpis */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px}
+.kpi{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow);display:flex;align-items:flex-start;gap:13px}
+.kpi .ic{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.kpi .ic svg{width:21px;height:21px;stroke-width:1.7;fill:none}
+.kpi.k1 .ic{background:#e7edf3}.kpi.k1 .ic svg{stroke:var(--blue-deep)}
+.kpi.k2 .ic{background:#e7eef0}.kpi.k2 .ic svg{stroke:var(--teal)}
+.kpi.k3 .ic{background:#eee9ef}.kpi.k3 .ic svg{stroke:var(--plum)}
+.kpi.k4 .ic{background:#eef0e9}.kpi.k4 .ic svg{stroke:var(--good)}
+.kpi.k5 .ic{background:#f2ece2}.kpi.k5 .ic svg{stroke:var(--gold)}
+.kpi .lab{font-size:9px;letter-spacing:.7px;color:var(--muted);text-transform:uppercase;font-weight:700}
+.kpi .val{font-size:23px;font-weight:600;margin-top:3px;letter-spacing:-.8px;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1}
+.kpi .sub{font-size:10.5px;color:var(--dim);margin-top:4px;font-weight:600}
+.kpi .sub b{color:var(--teal)}
+/* rows */
+.row{display:grid;gap:16px;margin-bottom:16px}
+.r2{grid-template-columns:1.62fr 1fr}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);min-width:0}
+.card h3{margin:0 0 4px;font-size:13.5px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:10px;letter-spacing:.2px}
+.card h3 .tagi{width:26px;height:26px;flex:0 0 26px;border-radius:8px;background:var(--blue-soft);display:flex;align-items:center;justify-content:center}
+.card h3 .tagi svg{width:15px;height:15px;stroke:var(--blue);fill:none;stroke-width:1.7}
+.card .csub{color:var(--muted);font-size:10.5px;margin:0 0 14px;letter-spacing:.1px}
+/* forecast table */
+.ftab{width:100%;border-collapse:collapse;font-size:11.5px}
+.ftab th{color:var(--dim);font-weight:700;font-size:9px;letter-spacing:.5px;text-transform:uppercase;text-align:right;padding:6px 8px;border-bottom:1px solid var(--border)}
+.ftab th.l,.ftab td.l{text-align:left}
+.ftab td{padding:7px 8px;text-align:right;font-variant-numeric:tabular-nums;border-bottom:1px solid #f1efeb;color:var(--ink)}
+.ftab tr.reg td{font-weight:700}
+.ftab tr.reg td.l{color:var(--blue-deep)}
+.ftab tr.tot td{font-weight:800;border-top:2px solid var(--border-strong);color:var(--navy)}
+.ftab td.big{color:var(--ink);font-weight:600}
+.rgdot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:0}
+.dom{background:var(--blue)}.intl{background:var(--gold)}.hw{background:var(--sage)}
+/* forecast month cards */
+.fc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-top:4px}
+.fc{border:1px solid var(--border);border-radius:11px;padding:11px 12px 10px;background:var(--paper);display:flex;flex-direction:column}
+.fc.tot{background:var(--blue-soft);border-color:#d3dde7}
+.fc .fch{text-align:center;font-size:8.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:800;padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:7px}
+.fc .fr{display:flex;align-items:center;gap:8px;font-size:11px;padding:7px 2px;border-bottom:1px solid #ededea}
+.fc .fr .ri{width:15px;height:15px;flex:0 0 15px;color:var(--blue-deep);display:inline-flex}
+.fc .fr .ri svg{width:15px;height:15px}
+.fc .fr .rl{color:var(--muted);font-weight:600;letter-spacing:.2px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fc .fr .rv{font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.fc .ftot{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border-strong);margin-top:7px;padding-top:7px;font-weight:800;font-size:10.5px;color:var(--navy)}
+.fc.tot .ftot{border-top-color:#bcccd9}
+.fc .ffoot{display:flex;align-items:center;justify-content:center;gap:5px;margin-top:9px;color:var(--dim);font-size:9px;font-weight:600;letter-spacing:.2px}
+.fc .ffoot svg{stroke:var(--dim)}
+.fcard{display:flex;flex-direction:column}
+.fcard .fc-grid{flex:1 1 auto;grid-auto-rows:1fr}
+.fcard .fc .frs{flex:1 1 auto;display:flex;flex-direction:column;justify-content:space-evenly}
+.fc .frs .fr:last-child{border-bottom:none}
+/* drivers */
+.drv{width:100%;border-collapse:collapse;font-size:11px}
+.drv th{font-size:8.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--dim);font-weight:800;text-align:right;padding:2px 8px 4px;border-bottom:1px solid var(--border)}
+.drv th.l{text-align:left}
+.drv td{padding:2px 8px;border-bottom:1px solid #f1efeb;vertical-align:middle;text-align:right;font-variant-numeric:tabular-nums}
+.drv td.l{text-align:left}
+.drv .rk{width:16px;height:16px;border-radius:5px;background:var(--navy);color:#fff;font-weight:700;font-size:9.5px;display:inline-flex;align-items:center;justify-content:center}
+.drv .nm{font-weight:600;color:var(--ink);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle}
+.drv .mval{font-weight:600;color:var(--ink);white-space:nowrap}
+.drv tfoot td{border-top:1px solid var(--border-strong);border-bottom:none;font-weight:800;color:var(--navy);background:var(--blue-soft);padding:5px 8px}
+.drv tfoot td.l{font-size:9px;letter-spacing:.5px;text-transform:uppercase;color:var(--blue-deep)}
+.drv tfoot tr td:first-child{border-radius:8px 0 0 8px}
+.drv tfoot tr td:last-child{border-radius:0 8px 8px 0}
+.empty{color:var(--dim);font-size:11.5px;padding:18px 4px;text-align:center;font-style:italic}
+/* project table */
+.ptwrap{overflow:auto;max-height:calc(100vh - 110px);border:1px solid var(--border);border-radius:10px}
+.ptab{border-collapse:separate;border-spacing:0;font-size:11px;min-width:0;width:100%}
+.ptab thead th{position:sticky;background:var(--paper);z-index:3}
+.ptab thead .grp th{top:0;z-index:4}
+.ptab thead #phead th{top:23px;z-index:4}
+.ptab thead #lhead th{top:23px;z-index:4}
+.ptab tr.ltot td{font-weight:800;border-top:2px solid var(--border-strong);color:var(--navy)}
+.ptab .grp th{background:#eef1f4;color:var(--blue-deep);font-size:9px;letter-spacing:.8px;text-transform:uppercase;font-weight:800;padding:6px 8px;text-align:center;border-bottom:1px solid var(--border)}
+.ptab .grp th.gh{background:#e7edf3}
+.ptab .grp th.gf{background:#eef0e9}
+.ptab th{font-size:8.5px;letter-spacing:.4px;text-transform:uppercase;color:var(--dim);font-weight:700;padding:7px 8px;text-align:right;border-bottom:1px solid var(--border-strong);white-space:nowrap}
+.ptab th.l,.ptab td.l{text-align:left}
+.ptab th.fhdr{text-align:center}
+.ptab td{padding:5px 8px;text-align:right;border-bottom:1px solid #f3f1ed;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ptab tbody tr:hover{background:#faf9f6}
+.ptab.hide-id .c-id{display:none}.ptab.hide-pm .c-pm{display:none}.ptab.hide-st .c-st{display:none}
+.coltgl{margin-left:auto;font-family:inherit;font-size:10px;font-weight:600;letter-spacing:.2px;color:var(--blue-deep);background:var(--paper);border:1px solid var(--border);border-radius:999px;padding:4px 11px;cursor:pointer;white-space:nowrap}
+.coltgl:hover{background:var(--blue-deep);color:#fff;border-color:var(--blue-deep)}
+.coltgls{margin-left:auto;display:flex;flex-direction:row;gap:6px;align-items:center}
+.coltgls .coltgl{margin-left:0;min-width:96px;text-align:center}
+.ptab td.fcell{background:#fbfcf9}
+.ptab td.rev{background:#eef0e9;font-weight:700;color:var(--navy)}
+.ptab .pid{font-weight:600;color:var(--blue-deep)}
+.ptab .pname{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ptab .pmnm,.ptab .ploc{color:var(--muted)}
+.ptab .ploc{max-width:66px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:9px;font-weight:700;letter-spacing:.3px}
+.bg-prog{background:#e6efe7;color:#3f7a52}.bg-other{background:#eee;color:#777}
+.inp{width:62px;border:1px solid var(--border-strong);border-radius:6px;padding:4px 6px;font-family:inherit;font-size:11px;text-align:right;color:var(--ink);background:#fff;font-variant-numeric:tabular-nums}
+.inp:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px var(--blue-soft)}
+.inp.rate{width:58px}
+.note{font-size:10.5px;color:var(--dim);margin:10px 2px 0;font-weight:600}
+.saveind{font-size:10px;color:var(--good);font-weight:700;opacity:0;transition:opacity .3s}
+.saveind.on{opacity:1}
+@media(max-width:1100px){.kpis{grid-template-columns:repeat(2,1fr)}.r2{grid-template-columns:1fr}.filters{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <div><div class="bt">NORTHSTAR</div><div class="bs">Heritage · FP&amp;A</div></div>
+    </div>
+    <nav class="nav">
+      <a class="active" data-go="top"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.2"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.2"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.2"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.2"/></svg>Overview</a>
+      <a data-go="projects"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Entry</a>
+      <a class="back" href="index.html"><svg viewBox="0 0 24 24" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>Hub</a>
+    </nav>
+  </aside>
+  <div class="main">
+    <div class="topbar">
+      <div class="hd-left">
+        <div class="hd-logo"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#fff" stroke-width="1.8"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/></svg></div>
+        <div class="title-wrap"><h1>Revenue Forecast</h1><p id="subDate">Project revenue projections</p></div>
+      </div>
+      <div class="tb-right">
+        <span class="saveind" id="saveInd">Saved</span>
+        <button class="tb-btn" id="btnExport"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>Export</button>
+        <button class="tb-btn" id="btnImport"><svg viewBox="0 0 24 24"><path d="M12 21V9m0 0l-4 4m4-4l4 4M5 3h14"/></svg>Import</button>
+        <input type="file" id="fileImport" accept=".csv" style="display:none"/>
+        <a class="tb-btn" href="index.html"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>Hub</a>
+      </div>
+    </div>
+    <div class="content" id="top">
+      <!-- filters -->
+      <div class="filters">
+        <div class="fl"><div class="fic"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg></div><div class="fbody"><div class="flab">Project Manager</div><button class="flbtn" type="button" data-flt="pm"><span class="flval">All Managers</span><span class="flcaret">&#9662;</span></button></div><div class="flmenu" hidden></div></div>
+        <div class="fl"><div class="fic"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg></div><div class="fbody"><div class="flab">Location</div><button class="flbtn" type="button" data-flt="loc"><span class="flval">All Locations</span><span class="flcaret">&#9662;</span></button></div><div class="flmenu" hidden></div></div>
+        <div class="fl"><div class="fic"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="fbody"><div class="flab">Project Status</div><button class="flbtn" type="button" data-flt="status"><span class="flval">All Statuses</span><span class="flcaret">&#9662;</span></button></div><div class="flmenu" hidden></div></div>
+        <div class="fl"><div class="fic"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div><div class="fbody"><div class="flab">Contract Type</div><button class="flbtn" type="button" data-flt="billing"><span class="flval">All Types</span><span class="flcaret">&#9662;</span></button></div><div class="flmenu" hidden></div></div>
+      </div>
+      <section id="view-overview">
+      <!-- kpis -->
+      <div class="kpis">
+        <div class="kpi k1"><div class="ic"><svg viewBox="0 0 24 24"><path d="M3 7h18v12H3z"/><path d="M3 11h18"/></svg></div><div><div class="lab">Total Contract Value</div><div class="val" id="kContract">—</div><div class="sub" id="kContractSub">&nbsp;</div></div></div>
+        <div class="kpi k2"><div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.3v9.4M14.3 9.2c-.5-.8-1.3-1.3-2.3-1.3-1.3 0-2.4.8-2.4 1.9 0 2.6 4.9 1.4 4.9 4 0 1.1-1.1 1.9-2.5 1.9-1 0-1.9-.5-2.4-1.3"/></svg></div><div><div class="lab">Revenue Recognized ITD</div><div class="val" id="kRec">—</div><div class="sub" id="kRecPct">&nbsp;</div></div></div>
+        <div class="kpi k3"><div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><div><div class="lab">Remaining Contract Value</div><div class="val" id="kRemain">—</div><div class="sub" id="kRemainSub">&nbsp;</div></div></div>
+        <div class="kpi k4"><div class="ic"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 4-5"/></svg></div><div><div class="lab">3-Month Forecast Revenue</div><div class="val" id="kFRev">—</div><div class="sub" id="kFRevSub">&nbsp;</div></div></div>
+      </div>
+      <!-- forecast panel + drivers -->
+      <div class="row r2">
+        <div class="card fcard">
+          <h3><span class="tagi"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 4-5"/></svg></span>3-Month Revenue Forecast</h3>
+          <div class="fc-grid" id="regionGrid"></div>
+        </div>
+        <div class="card">
+          <h3><span class="tagi"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/></svg></span>Largest Drivers</h3>
+          <table class="drv" id="driversTab"></table>
+        </div>
+      </div>
+      <!-- location summary (overview) -->
+      <div class="card" id="locCard">
+        <h3><span class="tagi"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg></span>Location Summary &mdash; 3-Month Forecast</h3>
+        <div class="ptwrap">
+          <table class="ptab" id="ltab">
+            <thead>
+              <tr class="grp">
+                <th class="gh l" colspan="4">Historical Performance</th>
+                <th class="gf" colspan="11">Forecast &amp; Projections</th>
+              </tr>
+              <tr id="lhead"></tr>
+            </thead>
+            <tbody id="locBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+    <section id="view-entry" hidden>
+      <!-- project table -->
+      <div class="card" id="projects">
+        <h3><span class="tagi"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></span>Project Details &mdash; Forecast &amp; Projections<span class="coltgls" id="colToggles"><button class="coltgl" data-col="id">Show ID</button><button class="coltgl" data-col="pm">Show PM</button><button class="coltgl" data-col="st">Show Status</button></span></h3>
+        <p class="csub">Historical performance is read from the workbook. Enter <b>Avg Rate</b> and <b>Exp % Markup</b> per project, plus <b>Expected Hours</b> and <b>Expenses</b> per month; <b>Expected Revenue</b> = hours &times; rate + expenses &times; (1 + markup%).<span id="seedNote"></span></p>
+        <div class="ptwrap">
+          <table class="ptab hide-id hide-pm hide-st" id="ptab">
+            <thead>
+              <tr class="grp">
+                <th class="gh l" colspan="8">Historical Performance</th>
+                <th class="gf" colspan="11">Forecast &amp; Projections</th>
+              </tr>
+              <tr id="phead"></tr>
+            </thead>
+            <tbody id="projBody"></tbody>
+          </table>
+        </div>
+        <div class="note" id="rowNote"></div>
+      </div>
+    </section>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  "use strict";
+  var DATA = window.REVENUE_FORECAST || {meta:{},rows:[]};
+  var META = DATA.meta || {}; var ROWS = DATA.rows || [];
+  // exclude overhead / OVHD projects
+  ROWS = ROWS.filter(function(r){ var s=((r[0]||"")+" "+(r[1]||"")).toUpperCase(); return s.indexOf("OVHD")<0 && s.indexOf("OVERHEAD")<0; });
+  var MONTHS = META.monthsShort || ["October","November","December"];
+  var REGIONS = ["Domestic","International","Meridian"];
+  var KEY = "rev_forecast_v2";
+  // column index map for a data row
+  var I = {id:0,name:1,pm:2,loc:3,region:4,status:5,billing:6,contract:7,recITD:8,remaining:9,recMTD:10,recPrev:11,cosITD:12,rate:13};
+
+  // ---- store ----
+  var store = {};
+  try { store = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch(e){ store = {}; }
+  // optional starting values shipped with the data (PM entries CSV embedded by the regen
+  // script); this browser's own entries always take precedence
+  var SEED = DATA.seed || {};
+  function cloneEntry(e){ return JSON.parse(JSON.stringify(e)); }
+  function entry(id){ return store[id] || SEED[id] || null; }
+  function rateOf(row){ var e=entry(row[I.id]); return (e && e.rate!=null) ? e.rate : 0; }
+  function moOf(row,m){ var e=entry(row[I.id]); if(e && e.m && e.m[m]) return e.m[m]; return {h:0,c:0,x:0}; }
+  function setVal(id, suggestRate, field, m, val){
+    var e = store[id] || (SEED[id] ? cloneEntry(SEED[id]) : {rate:suggestRate, m:[{h:0,c:0,x:0},{h:0,c:0,x:0},{h:0,c:0,x:0}]});
+    if(!e.m) e.m=[{h:0,c:0,x:0},{h:0,c:0,x:0},{h:0,c:0,x:0}];
+    if(field==="rate"){ e.rate = val; }
+    else if(field==="mk"){ e.mk = val; }
+    else { e.m[m][field] = val; }
+    store[id] = e;
+    persist();
+  }
+  var saveT=null;
+  function persist(){
+    try{ localStorage.setItem(KEY, JSON.stringify(store)); }catch(e){}
+    var s=document.getElementById("saveInd"); if(s){ s.classList.add("on"); clearTimeout(saveT); saveT=setTimeout(function(){s.classList.remove("on");},900); }
+  }
+
+  // ---- fmt ----
+  function fmtM(v){ var a=Math.abs(v); if(a>=1e6) return "$"+(v/1e6).toFixed(2)+"M"; if(a>=1e3) return "$"+(v/1e3).toFixed(0)+"K"; return "$"+Math.round(v); }
+  function fmtMoney(v){ return "$"+Math.round(v).toLocaleString("en-US"); }
+  function fmtNum(v){ return Math.round(v).toLocaleString("en-US"); }
+  function num(v){ v=parseFloat(v); return isFinite(v)?v:0; }
+
+  // ---- filters ----
+  function uniq(idx){ var s={}; ROWS.forEach(function(r){ s[r[idx]]=1; }); return Object.keys(s).sort(); }
+  function fillSel(id, idx, allLabel){
+    var sel=document.getElementById(id); var opts=["<option value='__all'>"+allLabel+"</option>"];
+    uniq(idx).forEach(function(v){ opts.push("<option value='"+v.replace(/'/g,"&#39;")+"'>"+v+"</option>"); });
+    sel.innerHTML=opts.join("");
+  }
+  var FSTATE={pm:"__all",loc:"__all",status:"__all",billing:"__all"};
+  var FCFG={pm:{idx:I.pm,all:"All Managers"},loc:{idx:I.loc,all:"All Locations"},status:{idx:I.status,all:"All Statuses"},billing:{idx:I.billing,all:"All Types"}};
+  function filtered(){
+    return ROWS.filter(function(r){
+      if(FSTATE.pm!=="__all" && r[I.pm]!==FSTATE.pm) return false;
+      if(FSTATE.loc!=="__all" && r[I.loc]!==FSTATE.loc) return false;
+      if(FSTATE.status!=="__all" && r[I.status]!==FSTATE.status) return false;
+      if(FSTATE.billing!=="__all" && r[I.billing]!==FSTATE.billing) return false;
+      return true;
+    });
+  }
+  function closeFilters(){ document.querySelectorAll(".flmenu").forEach(function(m){ m.hidden=true; m.parentNode.classList.remove("on"); }); }
+  function buildFilter(key){
+    var btn=document.querySelector('[data-flt="'+key+'"]'); var grp=btn.closest(".fl");
+    var valEl=grp.querySelector(".flval"); var menu=grp.querySelector(".flmenu"); var cfg=FCFG[key];
+    var sw=document.createElement("div"); sw.className="flsrchwrap";
+    var search=document.createElement("input"); search.type="search"; search.className="flsrch"; search.placeholder="Search…";
+    sw.appendChild(search);
+    var list=document.createElement("div"); list.className="flopts";
+    menu.appendChild(sw); menu.appendChild(list);
+    var values=uniq(cfg.idx); var kb=0;
+    function opts(){ return Array.prototype.slice.call(list.querySelectorAll(".flopt")); }
+    function markKb(){ var os=opts(); os.forEach(function(o,i){ o.classList.toggle("kb",i===kb); }); var el=os[kb]; if(el && el.offsetHeight){ var t=el.offsetTop,b=t+el.offsetHeight; if(t<list.scrollTop)list.scrollTop=t; else if(b>list.scrollTop+list.clientHeight)list.scrollTop=b-list.clientHeight; } }
+    function render(ft){
+      list.innerHTML=""; ft=(ft||"").trim().toLowerCase();
+      var all=document.createElement("div"); all.className="flopt"; all.dataset.value="__all"; all.textContent=cfg.all; list.appendChild(all);
+      values.filter(function(v){ return !ft || v.toLowerCase().indexOf(ft)>=0; }).forEach(function(v){
+        var o=document.createElement("div"); o.className="flopt"; o.dataset.value=v; o.textContent=v; o.title=v; list.appendChild(o);
+      });
+      opts().forEach(function(o){ o.classList.toggle("sel", o.dataset.value===FSTATE[key]); }); kb=0; markKb();
+    }
+    function choose(v){ FSTATE[key]=v; valEl.textContent=(v==="__all")?cfg.all:v; grp.classList.toggle("flt-active", v!=="__all"); closeFilters(); fullRender(); }
+    btn.addEventListener("click",function(e){ e.stopPropagation(); var willOpen=menu.hidden; closeFilters(); if(willOpen){ menu.hidden=false; grp.classList.add("on"); render(""); search.value=""; search.focus(); } });
+    search.addEventListener("click",function(e){ e.stopPropagation(); });
+    search.addEventListener("input",function(){ render(search.value); });
+    search.addEventListener("keydown",function(e){ var os=opts(); if(!os.length)return; if(e.key==="ArrowDown"){e.preventDefault();kb=(kb+1)%os.length;markKb();}else if(e.key==="ArrowUp"){e.preventDefault();kb=(kb-1+os.length)%os.length;markKb();}else if(e.key==="Enter"){e.preventDefault();choose(os[kb].dataset.value);}else if(e.key==="Escape"){e.preventDefault();closeFilters();} });
+    menu.addEventListener("click",function(e){ e.stopPropagation(); });
+    list.addEventListener("click",function(e){ var o=e.target.closest(".flopt"); if(o)choose(o.dataset.value); });
+    list.addEventListener("mousemove",function(e){ var o=e.target.closest(".flopt"); if(!o)return; kb=opts().indexOf(o); markKb(); });
+  }
+
+  // ---- per-row forecast compute ----
+  function markOf(row){ var e=entry(row[I.id]); return (e && e.mk!=null) ? e.mk : 0; }
+  function rowForecast(row){
+    var rate=rateOf(row); var mk=num(markOf(row)); var rev=[0,0,0], cost=[0,0,0];
+    for(var m=0;m<3;m++){ var d=moOf(row,m); rev[m]=num(d.h)*num(rate) + num(d.x)*(1+mk/100); cost[m]=num(d.c)+num(d.x); }
+    return {rev:rev, cost:cost, revTot:rev[0]+rev[1]+rev[2], costTot:cost[0]+cost[1]+cost[2]};
+  }
+
+  // ---- aggregate renders ----
+  function renderKPIs(rows){
+    var contract=0,rec=0,remain=0,frev=0,fcost=0;
+    rows.forEach(function(r){ contract+=r[I.contract]; rec+=r[I.recITD]; remain+=r[I.remaining]; var f=rowForecast(r); frev+=f.revTot; fcost+=f.costTot; });
+    document.getElementById("kContract").textContent=fmtM(contract);
+    document.getElementById("kContractSub").innerHTML=rows.length+" project"+(rows.length===1?"":"s");
+    document.getElementById("kRec").textContent=fmtM(rec);
+    document.getElementById("kRecPct").innerHTML= contract>0 ? "<b>"+(rec/contract*100).toFixed(1)+"%</b> of contract" : "&nbsp;";
+    document.getElementById("kRemain").textContent=fmtM(remain);
+    document.getElementById("kRemainSub").innerHTML= contract>0 ? (remain/contract*100).toFixed(1)+"% remaining" : "&nbsp;";
+    document.getElementById("kFRev").textContent=fmtM(frev);
+    document.getElementById("kFRevSub").innerHTML= MONTHS.join(" · ");
+  }
+
+  function monAbbr(full){ var p=String(full).split(" "); return (p[0]?p[0].slice(0,3):full)+(p[1]?" "+p[1]:""); }
+  var REGION_ICON={
+    Domestic:"<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.7'><path d='M3 3v18h18'/><path d='M7 14l3-3 3 3 4-5'/></svg>",
+    International:"<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.7'><circle cx='12' cy='12' r='9'/><path d='M3 12h18'/><path d='M12 3c2.6 2.6 2.6 15.4 0 18M12 3c-2.6 2.6-2.6 15.4 0 18'/></svg>",
+    Meridian:"<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linejoin='round'><path d='M3 20h18L13.5 6l-3.5 6-2-2.5z'/></svg>"
+  };
+  function renderRegion(rows){
+    var grid={}; REGIONS.forEach(function(rg){ grid[rg]=[0,0,0]; });
+    rows.forEach(function(r){ var f=rowForecast(r); var rg=r[I.region]; if(!grid[rg])grid[rg]=[0,0,0]; for(var m=0;m<3;m++) grid[rg][m]+=f.rev[m]; });
+    var full=META.months||["October 2026","November 2026","December 2026"];
+    var foots=[monAbbr(full[0]),monAbbr(full[1]),monAbbr(full[2]),monAbbr(full[0]).split(" ")[0]+" – "+monAbbr(full[2])];
+    var calIcon="<svg viewBox='0 0 24 24' width='12' height='12' fill='none' stroke='currentColor' stroke-width='1.7'><rect x='3' y='4.5' width='18' height='16.5' rx='2'/><path d='M3 9h18M8 2.5v4M16 2.5v4'/></svg>";
+    function card(idx,isTot){
+      var head=isTot?"3-Month Total":(MONTHS[idx]+" Forecast");
+      var inner=""; var tot=0;
+      REGIONS.forEach(function(rg){
+        var v= isTot ? (grid[rg][0]+grid[rg][1]+grid[rg][2]) : grid[rg][idx];
+        tot+=v;
+        inner+="<div class='fr'><span class='ri'>"+REGION_ICON[rg]+"</span><span class='rl'>"+rg+"</span><span class='rv'>"+fmtM(v)+"</span></div>";
+      });
+      return "<div class='fc"+(isTot?" tot":"")+"'><div class='fch'>"+head+"</div><div class='frs'>"+inner+"</div>"+
+        "<div class='ftot'><span>Total</span><span>"+fmtM(tot)+"</span></div>"+
+        "<div class='ffoot'>"+calIcon+(isTot?foots[3]:foots[idx])+"</div></div>";
+    }
+    document.getElementById("regionGrid").innerHTML=[card(0,false),card(1,false),card(2,false),card(null,true)].join("");
+  }
+  function renderDrivers(rows){
+    var arr=rows.map(function(r){ var f=rowForecast(r); return {r:r,f:f}; }).filter(function(o){ return o.f.revTot>0; });
+    arr.sort(function(a,b){ return b.f.revTot-a.f.revTot; });
+    var top=arr.slice(0,10); var tab=document.getElementById("driversTab");
+    if(top.length===0){ top=rows.slice().sort(function(a,b){ return b[I.remaining]-a[I.remaining]; }).slice(0,10).map(function(r){ return {r:r,f:rowForecast(r)}; }); }
+    if(top.length===0){ tab.innerHTML="<tbody><tr><td class='empty'>No projects match the current filters.</td></tr></tbody>"; return; }
+    var head="<thead><tr><th class='l' colspan='2'>Project</th><th>"+MONTHS[0].toUpperCase()+"</th><th>"+MONTHS[1].toUpperCase()+"</th><th>"+MONTHS[2].toUpperCase()+"</th></tr></thead>";
+    var tot=[0,0,0];
+    var body=top.map(function(o,i){
+      var f=o.f; var nm=o.r[I.name]; var disp = nm.length>34 ? nm.slice(0,32)+"…" : nm;
+      for(var m=0;m<3;m++) tot[m]+=f.rev[m];
+      return "<tr><td class='l' style='width:24px'><span class='rk'>"+(i+1)+"</span></td>"+
+        "<td class='l'><span class='nm' title='"+nm.replace(/'/g,"&#39;")+"'>"+disp+"</span></td>"+
+        "<td class='mval'>"+fmtM(f.rev[0])+"</td><td class='mval'>"+fmtM(f.rev[1])+"</td><td class='mval'>"+fmtM(f.rev[2])+"</td></tr>";
+    }).join("");
+    var foot="<tfoot><tr><td class='l' colspan='2'>Top 10 Drivers Total</td><td>"+fmtM(tot[0])+"</td><td>"+fmtM(tot[1])+"</td><td>"+fmtM(tot[2])+"</td></tr></tfoot>";
+    tab.innerHTML=head+"<tbody>"+body+"</tbody>"+foot;
+  }
+  // ---- project table ----
+  function renderHeadFull(){
+    var h="<th class='l c-id'>Project ID</th><th class='l'>Project Name</th><th class='l c-pm'>PM</th><th class='l'>Location</th><th class='l c-st'>Status</th>"+
+          "<th>Contract Value</th><th>Remaining CV</th><th>Rec. "+(META.prevMonth||"Prev")+"</th>"+
+          "<th>Avg Rate $</th><th>Exp % Mkup</th>";
+    for(var m=0;m<3;m++){
+      h+="<th class='fhdr'>"+MONTHS[m]+"<br>Hrs</th><th class='fhdr'>"+MONTHS[m]+"<br>Exp</th><th class='fhdr'>"+MONTHS[m]+"<br>Revenue</th>";
+    }
+    document.getElementById("phead").innerHTML=h;
+  }
+
+  function renderTable(rows){
+    document.getElementById("rowNote").textContent="Showing all "+rows.length+" project"+(rows.length===1?"":"s")+".";
+    var body=document.getElementById("projBody");
+    var html=[];
+    rows.forEach(function(r){
+      var id=r[I.id]; var rate=rateOf(r); var mk=markOf(r);
+      var nm=r[I.name];
+      var stCls = r[I.status]==="In Progress" ? "bg-prog":"bg-other";
+      var f=rowForecast(r);
+      var tr="<tr data-row='"+id+"'>";
+      tr+="<td class='l pid c-id'>"+id+"</td>";
+      tr+="<td class='l pname' title='"+nm.replace(/'/g,"&#39;")+"'>"+nm+"</td>";
+      tr+="<td class='l pmnm c-pm'>"+r[I.pm]+"</td>";
+      tr+="<td class='l ploc'>"+r[I.loc]+"</td>";
+      tr+="<td class='l c-st'><span class='badge "+stCls+"'>"+r[I.status]+"</span></td>";
+      tr+="<td>"+fmtMoney(r[I.contract])+"</td>";
+      tr+="<td>"+fmtMoney(r[I.remaining])+"</td>";
+      tr+="<td>"+fmtMoney(r[I.recPrev])+"</td>";
+      tr+="<td class='fcell'><input class='inp rate' type='number' step='5' data-id='"+id+"' data-field='rate' value='"+rate+"'></td>";
+      tr+="<td class='fcell'><input class='inp rate' type='number' step='1' data-id='"+id+"' data-field='mk' value='"+mk+"'></td>";
+      for(var m=0;m<3;m++){
+        var d=moOf(r,m);
+        tr+="<td class='fcell'><input class='inp' type='number' step='1' data-id='"+id+"' data-field='h' data-m='"+m+"' value='"+(d.h||"")+"' placeholder='0'></td>";
+        tr+="<td class='fcell'><input class='inp' type='number' step='100' data-id='"+id+"' data-field='x' data-m='"+m+"' value='"+(d.x||"")+"' placeholder='0'></td>";
+        tr+="<td class='rev' data-rev='"+m+"'>"+fmtMoney(f.rev[m])+"</td>";
+      }
+      tr+="</tr>";
+      html.push(tr);
+    });
+    body.innerHTML=html.join("");
+  }
+
+  var PMOS=["Big Sky","Bluegrass","Built Environment","Cascade","Chesapeake","Coastal Bend","Corporate","Front Range","Geospatial","Great Lakes","Gulf Coast","High Desert","Hill Country","International","Island","Lakeshore","Maritime","Meridian Central","Meridian Southwest","Paleontology","Piedmont","Prairie","Red Rock","Sierra"];
+  // ERP location names that roll up to a different PMO (same-name locations map to themselves)
+  var LOCMAP={"NH Gulf (USD)":"International","NH Gulf":"International","Global LLC International":"International","Meridian":"Meridian Central","Northstar Heritage Corporate":"Corporate","Sales and Marketing":"Corporate"};
+  var LOC_SELF={}; PMOS.forEach(function(p){ LOC_SELF[p]=1; });
+  function rollup(loc){ if(LOCMAP[loc]) return LOCMAP[loc]; if(LOC_SELF[loc]) return loc; return "Other / Unassigned"; }
+  function renderLocHead(){
+    var h="<th class='l'>Location</th><th>Contract Value</th><th>Remaining CV</th><th>Rec. "+(META.prevMonth||"Prev")+"</th><th>Avg Rate $</th><th>Exp % Mkup</th>";
+    for(var m=0;m<3;m++){ h+="<th class='fhdr'>"+MONTHS[m]+"<br>Hrs</th><th class='fhdr'>"+MONTHS[m]+"<br>Exp</th><th class='fhdr'>"+MONTHS[m]+"<br>Revenue</th>"; }
+    document.getElementById("lhead").innerHTML=h;
+  }
+  function renderLocTable(rows){
+    var map={};
+    rows.forEach(function(r){
+      var loc=rollup(r[I.loc]); var m=map[loc]||(map[loc]={c:0,rem:0,rp:0,hrs:[0,0,0],exp:[0,0,0],rev:[0,0,0],lr:0,th:0,tx:0,mr:0});
+      m.c+=r[I.contract]; m.rem+=r[I.remaining]; m.rp+=r[I.recPrev];
+      var rate=rateOf(r), mk=num(markOf(r));
+      for(var k=0;k<3;k++){ var d=moOf(r,k); var hh=num(d.h),xx=num(d.x); m.hrs[k]+=hh; m.exp[k]+=xx; m.rev[k]+=hh*rate+xx*(1+mk/100); m.lr+=hh*rate; m.th+=hh; m.tx+=xx; m.mr+=xx*mk/100; }
+    });
+    var locs=Object.keys(map).sort(function(a,b){ if(a==="Other / Unassigned")return 1; if(b==="Other / Unassigned")return -1; return a<b?-1:(a>b?1:0); });
+    var tot={c:0,rem:0,rp:0,hrs:[0,0,0],exp:[0,0,0],rev:[0,0,0]};
+    var html=locs.map(function(loc){
+      var m=map[loc]; tot.c+=m.c; tot.rem+=m.rem; tot.rp+=m.rp;
+      var br=m.th>0?Math.round(m.lr/m.th):0; var bm=m.tx>0?(m.mr/m.tx*100):0;
+      var cells="<td class='l'>"+loc+"</td><td>"+fmtMoney(m.c)+"</td><td>"+fmtMoney(m.rem)+"</td><td>"+fmtMoney(m.rp)+"</td><td>"+(br?("$"+br):"—")+"</td><td>"+(m.tx>0?bm.toFixed(0)+"%":"—")+"</td>";
+      for(var k=0;k<3;k++){ tot.hrs[k]+=m.hrs[k]; tot.exp[k]+=m.exp[k]; tot.rev[k]+=m.rev[k]; cells+="<td>"+fmtNum(m.hrs[k])+"</td><td>"+fmtMoney(m.exp[k])+"</td><td class='rev'>"+fmtMoney(m.rev[k])+"</td>"; }
+      return "<tr>"+cells+"</tr>";
+    }).join("");
+    var tc="<td class='l'>Total</td><td>"+fmtMoney(tot.c)+"</td><td>"+fmtMoney(tot.rem)+"</td><td>"+fmtMoney(tot.rp)+"</td><td>—</td><td>—</td>";
+    for(var k=0;k<3;k++){ tc+="<td>"+fmtNum(tot.hrs[k])+"</td><td>"+fmtMoney(tot.exp[k])+"</td><td class='rev'>"+fmtMoney(tot.rev[k])+"</td>"; }
+    document.getElementById("locBody").innerHTML=html+"<tr class='ltot'>"+tc+"</tr>";
+  }
+  function refreshAggregates(){
+    var rows=filtered();
+    renderKPIs(rows); renderRegion(rows); renderDrivers(rows); renderLocTable(rows);
+  }
+  function fullRender(){
+    var rows=filtered();
+    renderKPIs(rows); renderRegion(rows); renderDrivers(rows); renderLocTable(rows); renderTable(rows);
+  }
+
+  // ---- events ----
+  function onInput(e){
+    var t=e.target; if(!t.classList || !t.classList.contains("inp")) return;
+    var id=t.getAttribute("data-id"); var field=t.getAttribute("data-field");
+    var row=ROWS.find(function(r){ return r[I.id]===id; }); if(!row) return;
+    var v=num(t.value);
+    if(field==="rate"||field==="mk"){ setVal(id, 0, field, null, v); }
+    else { var m=parseInt(t.getAttribute("data-m"),10); setVal(id, 0, field, m, v); }
+    // update this row's revenue cells inline
+    var tr=t.closest("tr"); if(tr){ var f=rowForecast(row); var cells=tr.querySelectorAll("[data-rev]"); cells.forEach(function(c){ var m=parseInt(c.getAttribute("data-rev"),10); c.textContent=fmtMoney(f.rev[m]); }); }
+    refreshAggregates();
+  }
+
+  // ---- export / import ----
+  function exportCSV(){
+    var lines=["Project ID,Project Name,PM,Location,Avg Rate,"+
+      MONTHS[0]+" Hrs,"+MONTHS[0]+" Cost,"+MONTHS[0]+" Exp,"+
+      MONTHS[1]+" Hrs,"+MONTHS[1]+" Cost,"+MONTHS[1]+" Exp,"+
+      MONTHS[2]+" Hrs,"+MONTHS[2]+" Cost,"+MONTHS[2]+" Exp,Exp Markup %"];
+    var ids=Object.keys(SEED); Object.keys(store).forEach(function(id){ if(!SEED[id]) ids.push(id); });
+    ids.forEach(function(id){
+      var row=ROWS.find(function(r){return r[I.id]===id;}); if(!row) return;
+      var e=entry(id); var m=e.m||[{},{},{}];
+      function q(s){ s=String(s==null?"":s); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }
+      lines.push([id,q(row[I.name]),q(row[I.pm]),q(row[I.loc]),(e.rate!=null?e.rate:row[I.rate]),
+        (m[0].h||0),(m[0].c||0),(m[0].x||0),(m[1].h||0),(m[1].c||0),(m[1].x||0),(m[2].h||0),(m[2].c||0),(m[2].x||0),(e.mk||0)].join(","));
+    });
+    var blob=new Blob([lines.join("\n")],{type:"text/csv"});
+    var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="revenue_forecast_entries.csv"; a.click();
+  }
+  function importCSV(text){
+    var lines=text.split(/\r?\n/).filter(function(l){return l.trim();}); if(lines.length<2) return;
+    function parse(line){ var out=[],cur="",q=false; for(var i=0;i<line.length;i++){ var ch=line[i]; if(q){ if(ch=='"'){ if(line[i+1]=='"'){cur+='"';i++;} else q=false; } else cur+=ch; } else { if(ch=='"')q=true; else if(ch==','){out.push(cur);cur="";} else cur+=ch; } } out.push(cur); return out; }
+    for(var i=1;i<lines.length;i++){
+      var c=parse(lines[i]); if(c.length<14) continue; var id=c[0];
+      store[id]={rate:num(c[4]),mk:num(c[14]||0),m:[{h:num(c[5]),c:num(c[6]),x:num(c[7])},{h:num(c[8]),c:num(c[9]),x:num(c[10])},{h:num(c[11]),c:num(c[12]),x:num(c[13])}]};
+    }
+    persist(); fullRender();
+  }
+
+  // ---- nav ----
+  function fitEntryTable(){
+    var wrap=document.querySelector("#projects .ptwrap");
+    var ve=document.getElementById("view-entry");
+    if(!wrap||!ve||ve.hidden){ if(wrap) wrap.style.maxHeight=""; return; }
+    var top=wrap.getBoundingClientRect().top;
+    var note=document.getElementById("rowNote");
+    var content=document.querySelector(".content");
+    var cpb=content?(parseFloat(getComputedStyle(content).paddingBottom)||0):0;
+    var below=(note?note.offsetHeight:0)+18+cpb+14;
+    var hh=window.innerHeight-top-below;
+    wrap.style.maxHeight=Math.max(220,hh)+"px";
+  }
+  function initNav(){
+    var links=document.querySelectorAll(".nav a[data-go]");
+    function show(v){ document.getElementById("view-overview").hidden=(v!=="overview"); document.getElementById("view-entry").hidden=(v!=="entry"); fitEntryTable(); requestAnimationFrame(fitEntryTable); }
+    links.forEach(function(l){ l.addEventListener("click",function(){
+      links.forEach(function(x){x.classList.remove("active");}); l.classList.add("active");
+      try{window.scrollTo(0,0);}catch(e){} show(l.getAttribute("data-go")==="projects"?"entry":"overview");
+    });});
+    window.addEventListener("resize", fitEntryTable);
+  }
+
+  // ---- init ----
+  function init(){
+    var nSeed=Object.keys(SEED).length;
+    if(nSeed){ document.getElementById("seedNote").innerHTML=" Starting values are the PMs&rsquo; submitted entries ("+nSeed+" projects); your edits are saved in this browser and override them."; }
+    document.getElementById("subDate").textContent="Project revenue projections — actuals as of "+(META.asOf||"")+" · forecast "+MONTHS.join(" / ");
+    ["pm","loc","status","billing"].forEach(buildFilter);
+    // default to In Progress (keeps initial render light; other statuses still selectable)
+    if(uniq(I.status).indexOf("In Progress")>=0){ FSTATE.status="In Progress"; var sg=document.querySelector('[data-flt="status"]').closest(".fl"); sg.querySelector(".flval").textContent="In Progress"; sg.classList.add("flt-active"); }
+    document.addEventListener("click", closeFilters);
+    renderHeadFull(); renderLocHead();
+    document.getElementById("projBody").addEventListener("input", onInput);
+    document.getElementById("btnExport").addEventListener("click", exportCSV);
+    document.getElementById("btnImport").addEventListener("click", function(){ document.getElementById("fileImport").click(); });
+    document.getElementById("fileImport").addEventListener("change", function(e){ var f=e.target.files[0]; if(!f)return; var rd=new FileReader(); rd.onload=function(){ importCSV(rd.result); }; rd.readAsText(f); });
+    var ptab=document.getElementById("ptab"); var LBL={id:"ID",pm:"PM",st:"Status"};
+    document.querySelectorAll("#colToggles .coltgl").forEach(function(b){
+      var col=b.getAttribute("data-col");
+      b.addEventListener("click",function(){ var hidden=ptab.classList.toggle("hide-"+col); b.textContent=(hidden?"Show ":"Hide ")+LBL[col]; });
+    });
+    initNav();
+    fullRender();
+  }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded", init); else init();
+  // expose for headless testing
+  window.__RF={filtered:filtered, rowForecast:rowForecast, fullRender:fullRender, store:function(){return store;}, setVal:setVal};
+})();
+</script>
+</body>
+</html>

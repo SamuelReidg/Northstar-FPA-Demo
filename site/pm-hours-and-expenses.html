@@ -1,0 +1,2626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PM Hours &amp; Expenses — Northstar Heritage</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
+<style>
+  :root {
+    color-scheme: light;
+    --bg-grad-start: #f6f1e7;
+    --bg-grad-end:   #efe5d2;
+    --card-bg-start: #faf7f0;
+    --card-bg-end:   #f5f0e3;
+    --card-border:   #e8dfc9;
+    --ink:           #382e30;
+    --ink-soft:      #7a6a52;
+    --ink-body:      #5a4a3a;
+    --ink-dim:       #a89878;
+    --accent:        #ad8c63;
+    --accent-deep:   #8a6a3a;
+    --cream:         #f3e6c8;
+    --cream-soft:    #e8d6a7;
+    --sage:          #6a8a5a;
+    --rust:          #a06b3a;
+    --gold:          #c89b4a;
+    --olive:         #8a8a4a;
+    --terra:         #b8865a;
+    --moss:          #5a7a4a;
+    --green-up:      #3f6b3f;
+    --green-up-bg:   rgba(106,138,90,.18);
+    --rust-down:     #8a4b10;
+    --rust-down-bg:  rgba(160,107,58,.18);
+    --control-bg:    #ffffff;
+    /* Apple system font stack — used dashboard-wide for headings, labels,
+       numbers, and chart text. Falls back gracefully on Windows + Linux. */
+    --font-stack:    -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  }
+  /* ---------- Model X (dark theme) ----------
+     Toggled by the "Model X" button in the footer. Overrides the same CSS
+     variables the light theme uses, so the entire dashboard re-skins without
+     touching any per-element styles. */
+  body.model-x {
+    color-scheme: dark;
+    --bg-grad-start: #0e0f13;
+    --bg-grad-end:   #15171c;
+    --card-bg-start: #1a1c22;
+    --card-bg-end:   #16181d;
+    --card-border:   #2a2d35;
+    --ink:           #ececef;
+    --ink-soft:      #9a9ca3;
+    --ink-body:      #c4c5ca;
+    --ink-dim:       #6b6d75;
+    --gold:          #d4a85a;
+    /* No red / green in Model X — up + down deltas both render as muted gray
+       pills so the eye doesn't get a directional cue from color alone. */
+    --green-up:      #c4c5ca;
+    --green-up-bg:   rgba(180,182,190,.12);
+    --rust-down:     #c4c5ca;
+    --rust-down-bg:  rgba(180,182,190,.12);
+    --control-bg:    #1f222a;
+    /* Legend checkboxes use accent-color: var(--accent). In Model X the warm
+       tan reads wrong, so gray it down to match the bubbles and dots. */
+    --accent:        #8e9199;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; height: 100%; overflow: hidden; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, "Segoe UI", sans-serif;
+    color: var(--ink);
+    background: linear-gradient(160deg, var(--bg-grad-start) 0%, var(--bg-grad-end) 100%);
+    -webkit-font-smoothing: antialiased;
+    padding: 8px 10px;
+    display: flex; flex-direction: column;
+  }
+  .container {
+    width: 100%; max-width: none;
+    flex: 1; min-height: 0;
+    display: grid;
+    grid-template-columns: repeat(15, 1fr);
+    grid-template-rows:
+      minmax(0, 0.85fr)   /* R1: top KPIs                                */
+      minmax(0, 0.55fr)   /* R2: TFE only on left | bubbles top          */
+      minmax(0, 1.10fr)   /* R3: TFE continues    | bubbles bottom       */
+      minmax(0.5in, 1.30fr)  /* R4: tables — +0.5in for breathing room  */
+      auto;               /* R5: footer                                  */
+    gap: 8px;
+  }
+
+  /* ---------- Explicit positions (15-col grid; TFE = 3 cols, bubbles & tables fill remaining 12) ---------- */
+  /* Top KPI row sits over the bubble/table content area (cols 4-15) so its
+     left edge aligns with Hours by Category and Hours by Project by Employee
+     below. Cols 1-3 at row 1 are intentionally empty (TFE occupies them in
+     rows 2-4). */
+  /* PM Hours KPI removed — top row now hosts Billable Hours + Field Expenses,
+     split evenly across the content area (cols 4-15). */
+  .pos-kpi2   { grid-column: 4 / 10;   grid-row: 1; }
+  .pos-kpi3   { grid-column: 10 / 16;  grid-row: 1; }
+  /* Summary card occupies the previously-empty top-left slot above TFE. */
+  .pos-summary { grid-column: 1 / 4;   grid-row: 1; }
+
+  /* ---------- Summary card ----------
+     Stacked "hero name + small caption" blocks, inspired by an identity-
+     card layout. The card has no title bar; the three blocks themselves
+     carry the labels (Project Manager / Project / Period) underneath
+     each large value. */
+  .pos-summary { padding: 14px 16px; justify-content: space-between; }
+  .pos-summary .summary-block {
+    display: flex; flex-direction: column; min-width: 0;
+  }
+  .pos-summary .summary-block + .summary-block {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--card-border);
+  }
+  .pos-summary .summary-value {
+    font-family: var(--font-stack);
+    font-size: 19px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.15;
+    letter-spacing: -0.005em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pos-summary .summary-value.muted {
+    color: var(--ink); /* keep "All" prominent — it's still the current view */
+    font-weight: 500;
+  }
+  .pos-summary .summary-label {
+    font-family: var(--font-stack);
+    font-size: 11px;
+    color: var(--ink-soft);
+    margin-top: 2px;
+    letter-spacing: 0;
+    text-transform: none;
+    font-weight: 400;
+  }
+  .pos-tfe    { grid-column: 1 / 4;    grid-row: 2 / 5; }
+  .pos-bub1   { grid-column: 4 / 10;   grid-row: 2 / 4; }
+  .pos-bub2   { grid-column: 10 / 16;  grid-row: 2 / 4; }
+  .pos-hpm    { grid-column: 4 / 8;    grid-row: 4; }
+  .pos-pob    { grid-column: 8 / 12;   grid-row: 4; }
+  .pos-el     { grid-column: 12 / 16;  grid-row: 4; }
+  .pos-footer { grid-column: 1 / 16;   grid-row: 5; }
+
+  /* TFE is now narrower — scale its big number down so it fits */
+  .pos-tfe .value { font-size: 28px; }
+  .pos-tfe .value small { font-size: 12px; margin-left: 3px; }
+  .pos-tfe .delta { font-size: 10px; flex-wrap: wrap; justify-content: center; }
+  .pos-tfe .title { font-size: 11px; letter-spacing: .10em; }
+  .pos-tfe .kpi { flex: 0 0 auto; padding-bottom: 6px; border-bottom: 1px solid var(--card-border); }
+  .pos-tfe .ytd-block { flex: 1; min-height: 0; display: flex; flex-direction: column; margin-top: 8px; }
+  .pos-tfe .ytd-block .sub-title {
+    font-family: var(--font-stack); font-size: 10px; font-weight: 700;
+    color: var(--ink); text-align: center;
+    text-transform: uppercase; letter-spacing: 0.10em;
+    margin-bottom: 6px;
+  }
+  .pos-tfe .ytd-block .ytd-list { flex: 1; min-height: 0; overflow: auto; }
+  .pos-tfe .ytd-list table {
+    width: 100%; border-collapse: collapse;
+    font-family: var(--font-stack); font-size: 10.5px;
+    table-layout: fixed;
+  }
+  .pos-tfe .ytd-list td {
+    padding: 3px 2px;
+    border-bottom: 1px dotted var(--card-border);
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pos-tfe .ytd-list td.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    width: 72px;
+    overflow: visible;
+  }
+  .pos-tfe .ytd-list .idx {
+    display: inline-block; width: 14px; color: var(--ink-soft);
+    font-style: italic; font-size: 9.5px;
+  }
+
+  /* ---------- Card base ---------- */
+  .card {
+    background: linear-gradient(180deg, var(--card-bg-start) 0%, var(--card-bg-end) 100%);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 8px 12px;
+    box-shadow: 0 1px 3px rgba(56,46,48,.04);
+    position: relative; overflow: hidden;
+    display: flex; flex-direction: column;
+    min-height: 0;
+  }
+  .card .period {
+    font-family: var(--font-stack); font-size: 10.5px; font-style: italic;
+    color: var(--ink-soft); display: inline-flex; align-items: center; gap: 4px;
+  }
+  .card .period::after { content:"▾"; font-size: 8px; }
+  .card .title {
+    font-family: var(--font-stack); font-size: 12px; font-weight: 700;
+    color: var(--ink); text-align: center; margin: 4px 0 6px;
+    text-transform: uppercase; letter-spacing: 0.13em;
+  }
+  .card .info { display: none; }
+
+  /* ---------- KPI big number ---------- */
+  .kpi { flex:1; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 0; }
+  .kpi .value {
+    font-family: var(--font-stack);
+    font-size: 38px; font-weight: 400; letter-spacing: -.01em; line-height: 1;
+    color: var(--ink);
+  }
+  .kpi .value.huge { font-size: 46px; }
+  .kpi .value small {
+    font-family: var(--font-stack); font-size: 14px;
+    color: var(--ink-soft); margin-left: 5px; font-style: italic;
+  }
+  .kpi .delta {
+    margin-top: 8px; font-family: var(--font-stack); font-size: 11px;
+    color: var(--ink-soft); font-style: italic;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .pill {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-family: var(--font-stack); font-style: normal; font-weight: 700;
+    padding: 1px 7px; border-radius: 10px; font-size: 10.5px; letter-spacing: .04em;
+    background: var(--green-up-bg); color: var(--green-up);
+  }
+  .pill.down { background: var(--rust-down-bg); color: var(--rust-down); }
+
+  /* ---------- Sparkline KPIs ---------- */
+  .sparkline-card .top { text-align: center; margin-bottom: 2px; }
+  .sparkline-card .num {
+    font-family: var(--font-stack); font-size: 22px; font-weight: 400;
+    color: var(--ink); letter-spacing: -.01em;
+  }
+  .sparkline-card .num small {
+    font-size: 12px; color: var(--ink-soft); font-style: italic; margin-left: 3px;
+  }
+  .sparkline-card .delta-inline {
+    display: inline-flex; align-items: center; gap: 5px; margin-left: 6px;
+    font-family: var(--font-stack); font-style: italic;
+    font-size: 10.5px; color: var(--ink-soft);
+  }
+  .sparkline-wrap { flex: 1; position: relative; min-height: 0; }
+
+  /* ---------- Bubble cards ---------- */
+  .bubble-card { padding-bottom: 6px; }
+  .bubble-canvas {
+    flex: 1; position: relative; min-height: 0;
+    border-radius: 8px;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(173,140,99,.06), transparent 60%),
+      radial-gradient(circle at 80% 80%, rgba(106,138,90,.06), transparent 60%);
+  }
+  .bubble-canvas svg { width: 100%; height: 100%; display: block; }
+  .legend {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px;
+    margin-top: 4px;
+    font-family: var(--font-stack); font-size: 10px; color: var(--ink-body);
+  }
+  .legend label { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+  .legend label input { accent-color: var(--accent); width: 11px; height: 11px; }
+  .legend label .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  /* Model X drops the colored dot — the checkbox alone carries the on/off state. */
+  body.model-x .legend label .dot { display: none; }
+
+  /* Model X: keep the banner-row visual on tables (so project changes are
+     visible at a glance) but swap the warm gold gradient for a cool gray
+     that matches the rest of the theme. */
+  body.model-x table.dx tr.proj-header td.banner {
+    background: linear-gradient(180deg, rgba(180,184,194,.16) 0%, rgba(180,184,194,.06) 100%);
+  }
+  body.model-x table.dx tr.proj-header:hover td.banner {
+    background: linear-gradient(180deg, rgba(180,184,194,.22) 0%, rgba(180,184,194,.10) 100%);
+  }
+  body.model-x table.dx tbody tr:hover td {
+    background: rgba(180,184,194,.06);
+  }
+  /* Strip the hard-coded gold borders from cells, banner rows, sub-rows, and
+     the sticky thead background. Use the cool neutral that the rest of the
+     dark theme uses. */
+  body.model-x table.dx th,
+  body.model-x table.dx td {
+    border-bottom-color: rgba(180,184,194,.10);
+  }
+  body.model-x table.dx th {
+    background: rgba(180,184,194,.08);
+  }
+  body.model-x table.dx tr.proj-header td.banner {
+    border-top-color:    rgba(180,184,194,.18);
+    border-bottom-color: rgba(180,184,194,.14);
+  }
+  body.model-x table.dx tr.sub-row td {
+    border-bottom-color: rgba(180,184,194,.08);
+  }
+  /* Model X: active filter pill goes cool light gray with dark text instead
+     of the warm gold. Keeps the selected state high-contrast on the dark bg. */
+  body.model-x .filter-btn.active {
+    background: #c8ccd4 !important;
+    border-color: #c8ccd4 !important;
+    color: #1a1c22 !important;
+  }
+  body.model-x .filter-btn.active .filter-label,
+  body.model-x .filter-btn.active .filter-value,
+  body.model-x .filter-btn.active .filter-caret { color: #1a1c22; }
+  .legend .legend-name[role="button"] { cursor: pointer; border-bottom: 1px dotted transparent; }
+  .legend .legend-name[role="button"]:hover { color: var(--ink); border-bottom-color: var(--ink-soft); }
+  .muted { color: var(--ink-soft); font-style: italic; }
+
+  /* ---------- Drill-down modal (bubble legend → project list) ---------- */
+  .drill-modal {
+    position: fixed; inset: 0; background: rgba(56,46,48,.45);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 200;
+  }
+  .drill-modal[hidden] { display: none; }
+  .drill-modal .drill-card {
+    background: linear-gradient(180deg, var(--card-bg-start) 0%, var(--card-bg-end) 100%);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 18px 22px 16px;
+    width: min(640px, 92vw);
+    max-height: 80vh;
+    overflow: auto;
+    box-shadow: 0 10px 32px rgba(56,46,48,.32);
+    position: relative;
+  }
+  .drill-modal .drill-close {
+    position: absolute; top: 8px; right: 12px;
+    background: transparent; border: none; cursor: pointer;
+    font-family: var(--font-stack); font-size: 22px; color: var(--ink-soft);
+    line-height: 1;
+  }
+  .drill-modal .drill-close:hover { color: var(--ink); }
+  .drill-modal .drill-title {
+    font-family: var(--font-stack); font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.13em;
+    font-size: 13px; color: var(--ink); margin-bottom: 4px;
+    padding-right: 24px;
+  }
+  .drill-modal .drill-total {
+    font-family: var(--font-stack); font-style: italic;
+    font-size: 11px; color: var(--ink-soft); margin-bottom: 10px;
+  }
+  .drill-modal table { width: 100%; border-collapse: collapse; }
+  .drill-modal th, .drill-modal td {
+    padding: 5px 8px; text-align: left;
+    font-family: var(--font-stack); font-size: 11.5px;
+    border-bottom: 1px dotted var(--card-border);
+  }
+  .drill-modal th {
+    font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.10em;
+    color: var(--ink-soft); font-weight: 700;
+  }
+  .drill-modal td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .drill-modal td .idx {
+    display: inline-block; width: 18px; color: var(--ink-soft); font-style: italic; font-size: 10px;
+  }
+
+  /* ---------- Tables (bottom row) ---------- */
+  .tbl-card { padding: 6px 0 4px; min-height: 0; overflow: hidden; }
+  .tbl-card .head { padding: 0 10px; }
+  .tbl-card .title { padding: 0 10px 4px; }
+  .tbl-scroll { overflow-y: auto; overflow-x: hidden; flex: 1; min-height: 0; }
+  table.dx {
+    width: 100%; border-collapse: collapse;
+    font-family: var(--font-stack); font-size: 11px;
+    table-layout: fixed;
+  }
+  table.dx th, table.dx td {
+    padding: 3px 10px; text-align: right;
+    border-bottom: 1px solid #ede4cc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* 2-col pivot tables: numeric column gets a fixed width on the right with
+     extra breathing room so the header label and large numbers fit. The name
+     column takes whatever's left and ellipsises long names. */
+  table.dx.pivot-2col th:last-child,
+  table.dx.pivot-2col td:last-child { width: 95px; padding-right: 24px; }
+  table.dx.pivot-2col th:first-child,
+  table.dx.pivot-2col td:first-child { width: auto; }
+  /* Match padding for the banner total so it lines up with the column */
+  table.dx.pivot-2col tr.proj-header td.banner { padding-right: 24px; }
+  /* Banner can keep its content visible — it uses an internal flex layout */
+  table.dx.pivot-2col tr.proj-header td.banner { overflow: visible; }
+  table.dx th {
+    color: var(--ink-soft); font-weight: 700; font-size: 9.5px;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    background: rgba(232,223,201,.6);
+    position: sticky; top: 0;
+  }
+  table.dx td:first-child, table.dx th:first-child { text-align: left; }
+  table.dx td.num { font-variant-numeric: tabular-nums; color: var(--ink); }
+  table.dx tbody tr:hover td { background: rgba(173,140,99,.06); }
+  table.dx td .idx { color: var(--ink-dim); width: 14px; display: inline-block; font-size: 10px; }
+
+  /* Pivot-style: project banner row spans the full table width with name on
+     left + total on right; sub-rows are a 2-column breakout below. */
+  table.dx tr.proj-header td.banner {
+    background: linear-gradient(180deg, rgba(173,140,99,.18) 0%, rgba(173,140,99,.08) 100%);
+    border-top: 1px solid #c8b078;
+    border-bottom: 1px solid #d8c89a;
+    padding: 5px 10px;
+    color: var(--ink);
+    font-family: var(--font-stack);
+  }
+  table.dx tr.proj-header td.banner .banner-inner {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    justify-content: space-between;
+  }
+  table.dx tr.proj-header td.banner .banner-name {
+    font-weight: 700;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    flex: 1; min-width: 0;
+  }
+  table.dx tr.proj-header td.banner .group-toggle {
+    display: inline-block; width: 11px; color: var(--ink-soft);
+    margin-right: 5px; font-size: 9px; text-align: center;
+  }
+  table.dx tr.proj-header td.banner .banner-pm {
+    color: var(--ink-soft); font-style: italic; font-size: 10px;
+    margin-left: 4px; font-weight: 400;
+  }
+  table.dx tr.proj-header td.banner .banner-total {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+    white-space: nowrap;
+    font-size: 11.5px;
+  }
+  table.dx tr.proj-header { cursor: pointer; }
+  table.dx tr.proj-header:hover td.banner {
+    background: linear-gradient(180deg, rgba(173,140,99,.24) 0%, rgba(173,140,99,.12) 100%);
+  }
+
+  /* Sub-rows: 2-col breakout */
+  table.dx tr.sub-row td {
+    color: var(--ink-body);
+    border-bottom: 1px dotted #ede4cc;
+    padding: 2px 10px;
+  }
+  table.dx tr.sub-row td:first-child { padding-left: 22px; }
+  table.dx tr.sub-row td.num { color: var(--ink); font-variant-numeric: tabular-nums; }
+  /* Sub-rows hidden by their group's collapse state */
+  table.dx tr.sub-row.hidden-by-group { display: none; }
+  .pill-mini {
+    display: inline-flex; align-items: center; gap: 2px;
+    font-size: 9px; padding: 0 5px; border-radius: 8px; font-weight: 700;
+    background: var(--green-up-bg); color: var(--green-up); margin-left: 4px;
+  }
+  .pill-mini.down { background: var(--rust-down-bg); color: var(--rust-down); }
+
+  /* ---------- Footer strip ---------- */
+  .footer-strip {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 4px 12px;
+    background: linear-gradient(180deg, var(--card-bg-start) 0%, var(--card-bg-end) 100%);
+    border: 1px solid var(--card-border); border-radius: 8px;
+    font-family: var(--font-stack); font-size: 11px; color: var(--ink-soft);
+  }
+  .footer-strip .ctrls { display: flex; gap: 6px; }
+  .footer-strip button {
+    background: var(--control-bg); color: var(--ink-soft);
+    border: 1px solid var(--card-border); border-radius: 4px;
+    padding: 3px 9px; font-size: 10.5px; cursor: pointer;
+    font-family: var(--font-stack);
+  }
+  .sample-note {
+    background: var(--gold); color: #4a3320; border: 0;
+    padding: 4px 10px; font-weight: 700; font-size: 10.5px;
+    border-radius: 4px;
+  }
+  .back-link {
+    color: var(--ink-soft); text-decoration: none;
+    font-family: var(--font-stack); font-size: 11px;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .back-link:hover { color: var(--ink); }
+
+  /* ---------- Footer: prominent filter buttons ---------- */
+  .footer-strip .footer-left  { display: flex; align-items: center; gap: 8px; }
+  .footer-strip .footer-right { display: flex; align-items: center; gap: 10px; }
+  .filter-group { position: relative; }
+  .filter-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 7px 14px !important;
+    font-family: var(--font-stack) !important;
+    font-size: 12px !important;
+    background: var(--control-bg) !important;
+    color: var(--ink) !important;
+    border: 1.5px solid var(--ink-dim) !important;
+    border-radius: 999px !important;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, box-shadow .15s;
+    box-shadow: 0 1px 2px rgba(56,46,48,.06);
+    text-decoration: none;   /* for <a class="filter-btn"> */
+  }
+  .filter-btn:hover { background: var(--card-bg-start) !important; }
+  .filter-btn .filter-label {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.10em;
+    color: var(--ink-soft); font-weight: 700;
+  }
+  .filter-btn .filter-value {
+    font-size: 12px; font-weight: 700; color: var(--ink);
+    max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .filter-btn .filter-caret { font-size: 10px; color: var(--ink-soft); }
+  .filter-btn.active {
+    background: var(--gold) !important;
+    border-color: #4a3320 !important;
+    color: #4a3320 !important;
+  }
+  .filter-btn.active .filter-label,
+  .filter-btn.active .filter-value,
+  .filter-btn.active .filter-caret { color: #4a3320; }
+  .filter-menu {
+    position: absolute; bottom: calc(100% + 6px); left: 0;
+    min-width: 240px; max-height: 360px;
+    background: var(--control-bg);
+    border: 1px solid var(--ink-dim);
+    border-radius: 8px;
+    box-shadow: 0 6px 18px rgba(56,46,48,.18);
+    padding: 0;
+    z-index: 50;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  /* hidden attribute must win over display:flex */
+  .filter-menu[hidden] { display: none; }
+  .filter-search-wrap {
+    padding: 6px 6px 4px;
+    border-bottom: 1px solid var(--card-border);
+    background: var(--card-bg-start);
+  }
+  .filter-search {
+    width: 100%; box-sizing: border-box;
+    padding: 5px 8px;
+    font-family: var(--font-stack); font-size: 12px; color: var(--ink);
+    background: var(--control-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 4px;
+    outline: none;
+  }
+  .filter-search:focus { border-color: var(--ink-dim); }
+  .filter-options { overflow: auto; padding: 4px; flex: 1; min-height: 0; }
+  .filter-option {
+    padding: 6px 10px;
+    font-family: var(--font-stack); font-size: 12px; color: var(--ink);
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  .filter-option:hover { background: var(--card-bg-start); }
+  .filter-option.kb-active { background: var(--card-bg-start); outline: 1px solid var(--ink-dim); outline-offset: -1px; }
+  .filter-option.selected { background: var(--gold); color: #4a3320; font-weight: 700; }
+  .filter-option.selected.kb-active { outline: 1px solid #4a3320; }
+  .filter-clear {
+    padding: 6px 12px !important;
+    font-family: var(--font-stack) !important;
+    font-size: 11px !important;
+    background: transparent !important;
+    color: var(--ink-soft) !important;
+    border: 1px dashed var(--ink-dim) !important;
+    border-radius: 999px !important;
+    cursor: pointer;
+  }
+  .filter-clear:hover { color: var(--ink) !important; border-color: var(--ink) !important; }
+
+  /* No persistent "Aggregate" badge needed — bubbles now respond to filters too. */
+  body.filters-active .never-pos-bub1::after,
+  body.filters-active .never-pos-bub2::after {
+    content: "Aggregate · filters not applied";
+    position: absolute; top: 6px; right: 8px;
+    font-family: var(--font-stack); font-size: 9px; font-style: italic;
+    color: var(--ink-soft);
+    background: rgba(255,255,255,.7);
+    padding: 1px 6px; border-radius: 999px;
+    pointer-events: none;
+  }
+
+  @media (max-width: 1100px) {
+    html, body { overflow: auto; height: auto; }
+    .container { display: block; }
+    .container > * { grid-column: 1 / -1 !important; grid-row: auto !important; margin-bottom: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- ============ TOP KPI ROW ============ -->
+  <div class="card pos-summary">
+    <div class="summary-block">
+      <div class="summary-value muted" id="summaryPm">All</div>
+      <div class="summary-label">Project Manager</div>
+    </div>
+    <div class="summary-block">
+      <div class="summary-value muted" id="summaryPid">All Projects</div>
+      <div class="summary-label">Project</div>
+    </div>
+    <div class="summary-block">
+      <div class="summary-value" id="summaryPeriod">YTD</div>
+      <div class="summary-label">Period</div>
+    </div>
+  </div>
+
+  <div class="card pos-kpi2 sparkline-card">
+    <div><span class="period">Year to Date</span></div>
+    <div class="top">
+      <div class="title" style="margin:0">Billable Hours</div>
+      <div>
+        <span class="num" id="billBig">0<small>hrs</small></span>
+      </div>
+    </div>
+    <div class="sparkline-wrap"><canvas id="billSpark"></canvas></div>
+    <div class="info">i</div>
+  </div>
+
+  <div class="card pos-kpi3 sparkline-card">
+    <div><span class="period">Year to Date</span></div>
+    <div class="top">
+      <div class="title" style="margin:0">Field Expenses</div>
+      <div>
+        <span class="num" id="expBig">$ 0</span>
+      </div>
+    </div>
+    <div class="sparkline-wrap"><canvas id="expSpark"></canvas></div>
+    <div class="info">i</div>
+  </div>
+
+  <!-- ============ TOTAL + BUBBLES ============ -->
+  <div class="card pos-tfe">
+    <div><span class="period">This Month</span></div>
+    <div class="title">Total Field Expenses</div>
+    <div class="kpi">
+      <div class="value" id="totExpBig">$ 0</div>
+    </div>
+    <div class="ytd-block">
+      <div class="sub-title">Largest Expenses YTD</div>
+      <div class="ytd-list">
+        <table id="ytdTable" class="filterable">
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="info">i</div>
+  </div>
+
+  <div class="card pos-bub1 bubble-card">
+    <div><span class="period">This Month</span></div>
+    <div class="title">Hours by Category</div>
+    <div class="bubble-canvas" id="hoursBubbles"></div>
+    <div class="legend" id="hoursLegend"></div>
+    <div class="info">i</div>
+  </div>
+
+  <div class="card pos-bub2 bubble-card">
+    <div><span class="period">Year to Date</span></div>
+    <div class="title">Expenses by Category</div>
+    <div class="bubble-canvas" id="expBubbles"></div>
+    <div class="legend" id="expLegend"></div>
+    <div class="info">i</div>
+  </div>
+
+  <!-- ============ DETAIL TABLES ============ -->
+  <div class="card pos-hpm tbl-card">
+      <div class="head"><span class="period">This Month</span></div>
+      <div class="title">Hours by Project by Employee</div>
+      <div class="tbl-scroll">
+      <table id="hoursByProjTable" class="dx filterable pivot-2col">
+        <thead><tr><th>Employee</th><th>Hours</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      </div>
+      <div class="info">i</div>
+    </div>
+
+  <div class="card pos-pob tbl-card">
+      <div class="head"><span class="period">Year to Date</span></div>
+      <div class="title">Expenses by Project by Employee</div>
+      <div class="tbl-scroll">
+      <table id="expByEmpTable" class="dx filterable pivot-2col">
+        <thead><tr><th>Employee</th><th>Amount</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      </div>
+      <div class="info">i</div>
+    </div>
+
+  <div class="card pos-el tbl-card">
+      <div class="head"><span class="period">Year to Date</span></div>
+      <div class="title">Expenses by Project and Category</div>
+      <div class="tbl-scroll">
+      <table id="expByProjCatTable" class="dx filterable pivot-2col">
+        <thead><tr><th>Category</th><th>Amount</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      </div>
+      <div class="info">i</div>
+  </div>
+
+  <div class="footer-strip pos-footer">
+    <div class="footer-left">
+      <button id="modelXBtn" class="filter-btn" type="button" aria-pressed="false" title="Toggle the Model X dark theme">
+        <span class="filter-label">Model X</span>
+        <span class="filter-value" id="modelXValue">Off</span>
+      </button>
+      <div class="filter-group">
+        <button id="fltPmBtn" class="filter-btn" type="button" aria-haspopup="listbox" aria-expanded="false">
+          <span class="filter-label">Project Manager</span>
+          <span class="filter-value" id="fltPmValue">All</span>
+          <span class="filter-caret">▾</span>
+        </button>
+        <div id="fltPmMenu" class="filter-menu" role="listbox" hidden></div>
+      </div>
+      <div class="filter-group">
+        <button id="fltPidBtn" class="filter-btn" type="button" aria-haspopup="listbox" aria-expanded="false">
+          <span class="filter-label">Project Name</span>
+          <span class="filter-value" id="fltPidValue">All</span>
+          <span class="filter-caret">▾</span>
+        </button>
+        <div id="fltPidMenu" class="filter-menu" role="listbox" hidden></div>
+      </div>
+      <button id="periodBtn" class="filter-btn" type="button" aria-pressed="false" title="Click to switch between YTD and this month">
+        <span class="filter-label">Period</span>
+        <span class="filter-value" id="periodValue">YTD</span>
+      </button>
+      <button id="fltClear" class="filter-clear" type="button" hidden>Clear filters</button>
+    </div>
+    <div class="footer-right">
+      <a class="filter-btn" href="index.html" role="button">
+        <span class="filter-label">Home</span>
+      </a>
+    </div>
+  </div>
+
+</div>
+
+<script src="pm_hours_data.js"></script>
+<script>
+/* ====== Formatting helpers ====== */
+const D = window.DASH_DATA || {};
+
+/* ====== Current period — derived from the data file, never hardcoded ======
+   (Until 2026-09-30 the labels, the "current month" array slot [4] and the
+   transaction-drill month '05' were all hardcoded to May.) */
+const PERIOD = (function () {
+  const labels = (D.sparkline && D.sparkline.labels) || [];
+  const n = labels.length || 1;
+  const abbr = String(labels[n - 1] || '').replace('*', '');
+  return {
+    idx:  n - 1,                                // current month's slot in every monthly array
+    mm:   String(n).padStart(2, '0'),           // current month as MM for the transaction drill
+    ytd:  D.period_label_ytd  || ('Year to Date (Jan - ' + abbr + ')'),
+    month: D.period_label_this || ('This Month (' + abbr + ')'),
+    sumYtd:   'YTD (Jan \u2013 ' + abbr + ')',
+    sumMonth: 'This Month (' + abbr + ')',
+    zeros: function () { return new Array(n).fill(0); }
+  };
+})();
+window.PMH_PERIOD = PERIOD;
+document.querySelectorAll('span.period').forEach(el => {
+  el.textContent = /this month/i.test(el.textContent) ? PERIOD.month : PERIOD.ytd;
+});
+(function () { const el = document.getElementById('summaryPeriod'); if (el) el.textContent = PERIOD.sumYtd; })();
+
+/* ====== Strip "Overhead Global" everywhere ======
+   Overhead Global is a pseudo-project that catches every PM's admin /
+   overhead bookings. It dwarfs real client work in every total, every list,
+   and every chart, and isn't an actionable line item. Sanitize the data
+   structure once, at load time, so every downstream display (KPIs, spark-
+   lines, bubble totals, dropdowns, filtered views) sees a Overhead-Global-
+   free dataset without having to filter case-by-case. */
+(function scrubOverheadGlobal() {
+  const isOG = name => typeof name === 'string' && /overhead\s+global/i.test(name);
+
+  // 1) Find OG's PID + monthly expense series from the source arrays.
+  let ogPid = '';
+  const probe = (arr) => {
+    for (const r of (arr || [])) {
+      if (r && isOG(r.name) && r.pid) { ogPid = r.pid; return; }
+    }
+  };
+  probe(D.largest_expenses_ytd_by_project);
+  probe(D.expenses_by_project_category_ytd);
+  probe(D.top_expenses_by_project_this_month);
+  probe(D.hours_by_project_employee_ytd);
+  probe(D.expenses_by_project_employee_ytd);
+
+  // OG's per-month expense series (from per-PID monthly rollup, which is
+  // complete — no top-N truncation, so the subtraction is exact).
+  const ogMonthlyE = (D.monthly_by_pid && ogPid && D.monthly_by_pid[ogPid] && D.monthly_by_pid[ogPid].e) || PERIOD.zeros();
+  const ogYtdE     = ogMonthlyE.reduce((a, b) => a + (b || 0), 0);
+  const ogMonthE   = ogMonthlyE[PERIOD.idx] || 0;   // current month is the last slot
+
+  // 2) Subtract OG from the Field Expenses KPI + Total Field Expenses KPI.
+  if (D.kpi) {
+    if (typeof D.kpi.field_expenses_ytd === 'number')            D.kpi.field_expenses_ytd            -= ogYtdE;
+    if (typeof D.kpi.total_field_expenses_this_month === 'number') D.kpi.total_field_expenses_this_month -= ogMonthE;
+  }
+  if (D.kpi_extra) {
+    if (typeof D.kpi_extra.field_expenses_ytd === 'number')        D.kpi_extra.field_expenses_ytd        -= ogYtdE;
+    if (typeof D.kpi_extra.field_expenses_this_month === 'number') D.kpi_extra.field_expenses_this_month -= ogMonthE;
+  }
+
+  // 3) Subtract month-by-month from the org-wide sparkline series.
+  if (D.sparkline && Array.isArray(D.sparkline.field_expenses)) {
+    D.sparkline.field_expenses = D.sparkline.field_expenses.map((v, i) => (v || 0) - (ogMonthlyE[i] || 0));
+  }
+
+  // 4) Drop OG from per-PID monthly rollups + filter dropdown options so it
+  //    doesn't appear in the Project Name list and doesn't sneak back into
+  //    filtered-view KPI re-aggregation.
+  if (ogPid) {
+    if (D.monthly_by_pid)    delete D.monthly_by_pid[ogPid];
+    if (D.monthly_h_by_pid)  delete D.monthly_h_by_pid[ogPid];
+    if (D.filters && Array.isArray(D.filters.pids)) {
+      D.filters.pids = D.filters.pids.filter(p => p !== ogPid);
+    }
+  }
+
+  // 5) Drop OG rows from every array that's iterated downstream so bubble
+  //    drill-downs, side lists, and the project-category render all skip it.
+  const arrayKeys = [
+    'largest_expenses_ytd_by_project',
+    'top_expenses_by_project_this_month',
+    'top_hours_by_project_this_month',
+    'top_billable_by_project_ytd',
+    'expenses_by_project_category_ytd',
+    'expenses_by_project_category_this_month',
+    'hours_by_project_employee_ytd',
+    'hours_by_project_employee_this_month',
+    'expenses_by_project_employee_ytd',
+    'expenses_by_project_employee_this_month',
+  ];
+  arrayKeys.forEach(k => {
+    if (Array.isArray(D[k])) D[k] = D[k].filter(r => !isOG(r && r.name));
+  });
+  // Phase + category bubble drill-downs (nested project lists)
+  ['phases_ytd', 'phases_this_month', 'categories_ytd', 'categories_this_month'].forEach(k => {
+    (D[k] || []).forEach(grp => {
+      if (Array.isArray(grp.projects)) {
+        grp.projects = grp.projects.filter(p => !isOG(p && p.name));
+      }
+    });
+  });
+})();
+
+function fmtMoney(v) { return '$ ' + Math.round(v).toLocaleString(); }
+function fmtMoneyShort(v) {
+  if (v >= 1000) return '$' + (v/1000).toFixed(v >= 10000 ? 0 : 1) + 'k';
+  return '$' + Math.round(v).toLocaleString();
+}
+function fmtHrs(v) { return Math.round(v).toLocaleString(); }
+
+/* ====== Count-ups ====== */
+function countUp(el, target, opts={}) {
+  if (!el) return;
+  const { prefix='', suffix='', decimals=0, dur=1300, money=false } = opts;
+  const small = el.querySelector('small');
+  const smallHTML = small ? small.outerHTML : '';
+  const start = performance.now();
+  function frame(now) {
+    const p = Math.min(1, (now-start)/dur);
+    const e = 1 - Math.pow(1-p, 3);
+    const v = target * e;
+    let txt;
+    if (money) txt = prefix + '$ ' + Math.round(v).toLocaleString();
+    else txt = prefix + v.toLocaleString(undefined,{minimumFractionDigits:decimals, maximumFractionDigits:decimals}) + suffix;
+    el.innerHTML = txt + smallHTML;
+    if (p<1) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+countUp(document.getElementById('hoursBig'),  Math.round(D.kpi.pm_hours_this_month));
+countUp(document.getElementById('billBig'),   Math.round(D.kpi.billable_hours_ytd));
+countUp(document.getElementById('expBig'),    Math.round(D.kpi.field_expenses_ytd), { money: true });
+countUp(document.getElementById('totExpBig'), Math.round(D.kpi.total_field_expenses_this_month), { money: true });
+
+/* ====== Global Dashboard Filters (PM + Project ID) ====== */
+(function initDashboardFilters() {
+  const tables = Array.from(document.querySelectorAll('table.filterable'));
+  if (!tables.length) return;
+
+  // Source of truth for filter options: the full PM/PID lists from DASH_DATA
+  // (Excel-wide), not just the few rows currently rendered in the top-N tables.
+  const filtersSrc = (window.DASH_DATA && window.DASH_DATA.filters) || {};
+  const pms  = (filtersSrc.pms  || []).slice().sort();
+  const pids = (filtersSrc.pids || []).slice().sort();
+
+  // Build a PM -> Set<PID> map AND a PID -> project-name lookup by scanning
+  // every project-shaped array in the data file. The Project Name dropdown
+  // shows names but keeps PID as the underlying filter key (which is what
+  // every row's data-pid attribute matches against).
+  const pmToPids = {};
+  const pidToName = {};
+  const arrays = [
+    D.top_hours_by_project_this_month,
+    D.top_billable_by_project_ytd,
+    D.top_expenses_by_project_this_month,
+    D.largest_expenses_ytd_by_project,
+    D.expenses_by_project_category_ytd,
+    D.hours_by_project_employee_this_month,
+    D.expenses_by_project_employee_ytd,
+  ];
+  for (const arr of arrays) {
+    if (!Array.isArray(arr)) continue;
+    for (const row of arr) {
+      if (row && row.pm && row.pid) {
+        (pmToPids[row.pm] = pmToPids[row.pm] || new Set()).add(row.pid);
+      }
+      if (row && row.pid && row.name && !pidToName[row.pid]) {
+        pidToName[row.pid] = row.name;
+      }
+    }
+  }
+  // Also fold in phase/category sub-projects which include pm + pid + name
+  function ingestNested(arr, key) {
+    if (!Array.isArray(arr)) return;
+    for (const grp of arr) {
+      for (const p of (grp.projects || [])) {
+        if (p && p.pm && p.pid) {
+          (pmToPids[p.pm] = pmToPids[p.pm] || new Set()).add(p.pid);
+        }
+        if (p && p.pid && p.name && !pidToName[p.pid]) {
+          pidToName[p.pid] = p.name;
+        }
+      }
+    }
+  }
+  ingestNested(D.phases_this_month);
+  ingestNested(D.phases_ytd);
+  ingestNested(D.categories_ytd);
+  ingestNested(D.categories_this_month);
+
+  // Friendly display: project name when known, falls back to the PID code.
+  function pidLabel(pid) { return pid ? (pidToName[pid] || pid) : ''; }
+
+  // Returns the items to populate the Project Name dropdown with, as
+  // {value, label} pairs sorted alphabetically by the displayed name.
+  function projectItemsForPm(pm) {
+    const set = pm ? (pmToPids[pm] || new Set()) : new Set(pids);
+    const items = Array.from(set).map(pid => ({ value: pid, label: pidLabel(pid) }));
+    items.sort((a, b) => a.label.localeCompare(b.label));
+    return items;
+  }
+
+  // Default to YTD. Toggling the Period button switches to "month".
+  const state = { pm: '', pid: '', period: 'ytd' };
+  // Expose state so other modules (bubbles, tables, sparklines) can read it.
+  window.getPeriod    = () => state.period;
+  window.getFilterPm  = () => state.pm;
+  window.getFilterPid = () => state.pid;
+
+  const els = {
+    pmBtn:    document.getElementById('fltPmBtn'),
+    pmVal:    document.getElementById('fltPmValue'),
+    pmMenu:   document.getElementById('fltPmMenu'),
+    pidBtn:   document.getElementById('fltPidBtn'),
+    pidVal:   document.getElementById('fltPidValue'),
+    pidMenu:  document.getElementById('fltPidMenu'),
+    clearBtn: document.getElementById('fltClear'),
+    periodBtn:document.getElementById('periodBtn'),
+    periodVal:document.getElementById('periodValue'),
+  };
+
+  function buildMenu(menuEl, valuesOrFn, key) {
+    const getValues = typeof valuesOrFn === 'function' ? valuesOrFn : () => valuesOrFn;
+    // Normalize each entry to { value, label }. Strings become {value:s, label:s}.
+    function normalize(items) {
+      return (items || []).map(v => (typeof v === 'string' ? { value: v, label: v } : v));
+    }
+    menuEl.innerHTML = '';
+    // Sticky search box at top — needed because the PM and Project Name lists
+    // are too long to scroll comfortably.
+    const searchWrap = document.createElement('div');
+    searchWrap.className = 'filter-search-wrap';
+    const search = document.createElement('input');
+    search.type = 'search';
+    search.className = 'filter-search';
+    search.placeholder = key === 'pm' ? 'Search PMs…' : 'Search project names…';
+    searchWrap.appendChild(search);
+    menuEl.appendChild(searchWrap);
+
+    const list = document.createElement('div');
+    list.className = 'filter-options';
+    menuEl.appendChild(list);
+
+    function render(filterText) {
+      list.innerHTML = '';
+      const allOpt = document.createElement('div');
+      allOpt.className = 'filter-option';
+      allOpt.dataset.value = '';
+      allOpt.textContent = 'All';
+      allOpt.setAttribute('role', 'option');
+      list.appendChild(allOpt);
+      const ft = (filterText || '').trim().toLowerCase();
+      const items = normalize(getValues());
+      // Search matches against the displayed label, not the PID code, so
+      // typing "USFS" finds the right projects.
+      const filtered = ft ? items.filter(it => it.label.toLowerCase().includes(ft)) : items;
+      filtered.forEach(it => {
+        const o = document.createElement('div');
+        o.className = 'filter-option';
+        o.dataset.value = it.value;
+        o.textContent = it.label;
+        o.title = it.value !== it.label ? it.value : '';   // PID on hover for project rows
+        o.setAttribute('role', 'option');
+        list.appendChild(o);
+      });
+      // Re-highlight selected
+      list.querySelectorAll('.filter-option').forEach(o => {
+        o.classList.toggle('selected', o.dataset.value === state[key]);
+      });
+      // Reset keyboard cursor to the first option after each re-render
+      setKbActive(0);
+    }
+
+    // --- Keyboard navigation -------------------------------------------------
+    // Arrow Up/Down moves a "kb-active" highlight through the visible options.
+    // Enter commits the highlighted option. Escape closes the menu. The search
+    // input keeps focus the whole time so the user can keep typing to narrow
+    // and then arrow down + enter without ever touching the mouse.
+    function visibleOptions() {
+      return Array.from(list.querySelectorAll('.filter-option'));
+    }
+    function setKbActive(idx) {
+      const opts = visibleOptions();
+      if (!opts.length) return;
+      opts.forEach(o => o.classList.remove('kb-active'));
+      const clamped = Math.max(0, Math.min(idx, opts.length - 1));
+      opts[clamped].classList.add('kb-active');
+      // Keep the active option in view inside the scrollable list.
+      const el = opts[clamped];
+      const top = el.offsetTop, bot = top + el.offsetHeight;
+      if (top < list.scrollTop) list.scrollTop = top;
+      else if (bot > list.scrollTop + list.clientHeight) list.scrollTop = bot - list.clientHeight;
+    }
+    function currentKbIndex() {
+      const opts = visibleOptions();
+      return opts.findIndex(o => o.classList.contains('kb-active'));
+    }
+    function commitKbActive() {
+      const opts = visibleOptions();
+      const cur = opts.find(o => o.classList.contains('kb-active'));
+      if (!cur) return;
+      state[key] = cur.dataset.value;
+      closeAllMenus();
+      apply();
+    }
+
+    render('');
+    search.addEventListener('input', () => render(search.value));
+    search.addEventListener('click', e => e.stopPropagation());
+    search.addEventListener('keydown', e => {
+      const opts = visibleOptions();
+      if (!opts.length) return;
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          setKbActive((currentKbIndex() + 1) % opts.length);
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          setKbActive((currentKbIndex() - 1 + opts.length) % opts.length);
+          break;
+        case 'Home':
+          e.preventDefault();
+          setKbActive(0);
+          break;
+        case 'End':
+          e.preventDefault();
+          setKbActive(opts.length - 1);
+          break;
+        case 'Enter':
+          e.preventDefault();
+          commitKbActive();
+          break;
+        case 'Escape':
+          e.preventDefault();
+          closeAllMenus();
+          break;
+      }
+    });
+
+    list.addEventListener('click', e => {
+      const opt = e.target.closest('.filter-option');
+      if (!opt) return;
+      state[key] = opt.dataset.value;
+      closeAllMenus();
+      apply();
+    });
+    // Mouse hover updates the keyboard cursor so it doesn't fight the mouse.
+    list.addEventListener('mousemove', e => {
+      const opt = e.target.closest('.filter-option');
+      if (!opt) return;
+      const opts = visibleOptions();
+      const idx = opts.indexOf(opt);
+      if (idx >= 0) setKbActive(idx);
+    });
+
+    // Expose a re-render hook so apply() can refresh selected state + values
+    menuEl._rerender = () => render(search.value);
+  }
+
+  buildMenu(els.pmMenu,  pms, 'pm');
+  // Project menu is dynamic — its options narrow to the selected PM's projects.
+  // Values are PIDs (the rows' data-pid attribute), labels are project names.
+  buildMenu(els.pidMenu, () => projectItemsForPm(state.pm), 'pid');
+
+  function closeAllMenus() {
+    els.pmMenu.hidden  = true;
+    els.pidMenu.hidden = true;
+    els.pmBtn.setAttribute('aria-expanded',  'false');
+    els.pidBtn.setAttribute('aria-expanded', 'false');
+  }
+
+  function toggleMenu(menuEl, btnEl) {
+    const willOpen = menuEl.hidden;
+    closeAllMenus();
+    menuEl.hidden = !willOpen;
+    btnEl.setAttribute('aria-expanded', String(willOpen));
+    if (willOpen) {
+      const search = menuEl.querySelector('.filter-search');
+      if (search) setTimeout(() => search.focus(), 0);
+    }
+  }
+
+  // ---- Model X dark-theme toggle ------------------------------------------
+  // Adds body.model-x to re-skin the whole dashboard via CSS variables. Opens in
+  // Model X by default. The choice persists across reloads so people aren't re-toggling each time.
+  (function initModelX() {
+    const btn = document.getElementById('modelXBtn');
+    const val = document.getElementById('modelXValue');
+    if (!btn) return;
+    let saved = null;
+    try { saved = localStorage.getItem('pmDashTheme'); } catch (_) {}
+    function setActive(on) {
+      document.body.classList.toggle('model-x', !!on);
+      btn.classList.toggle('active', !!on);
+      btn.setAttribute('aria-pressed', String(!!on));
+      if (val) val.textContent = on ? 'On' : 'Off';
+      try { localStorage.setItem('pmDashTheme', on ? 'model-x' : 'light'); } catch (_) {}
+      // Bubbles bake colors into SVG gradients at render time, so rebuild
+      // them whenever the theme flips. Sparklines repaint in-place.
+      if (window.rebuildBubbles)  window.rebuildBubbles();
+      if (window.applySparkTheme) window.applySparkTheme();
+    }
+    setActive(saved !== 'light');   // demo opens in Model X; a viewer's own Light choice is remembered
+    btn.addEventListener('click', () => {
+      setActive(!document.body.classList.contains('model-x'));
+    });
+  })();
+
+  els.pmBtn .addEventListener('click', e => { e.stopPropagation(); toggleMenu(els.pmMenu,  els.pmBtn);  });
+  els.pidBtn.addEventListener('click', e => { e.stopPropagation(); toggleMenu(els.pidMenu, els.pidBtn); });
+
+  // Open the menu from the button via ArrowDown / Enter / Space — keeps the
+  // dropdown fully keyboard-driven once the user tabs to the filter button.
+  function buttonKeyOpen(menuEl, btnEl) {
+    return function(e) {
+      if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
+        if (menuEl.hidden) {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleMenu(menuEl, btnEl);
+        }
+      }
+    };
+  }
+  els.pmBtn .addEventListener('keydown', buttonKeyOpen(els.pmMenu,  els.pmBtn));
+  els.pidBtn.addEventListener('keydown', buttonKeyOpen(els.pidMenu, els.pidBtn));
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.filter-group')) closeAllMenus();
+  });
+
+  els.clearBtn.addEventListener('click', () => {
+    state.pm = ''; state.pid = ''; apply();
+  });
+
+  // Period toggle: cycles YTD → Month → YTD. Triggers all period-aware re-renders.
+  if (els.periodBtn) {
+    els.periodBtn.addEventListener('click', () => {
+      state.period = state.period === 'ytd' ? 'month' : 'ytd';
+      // Re-render period-aware tables before apply() runs the filter pass over them
+      if (window.populateHoursPETable)   window.populateHoursPETable();
+      if (window.populateExpPETable)     window.populateExpPETable();
+      if (window.populateProjCatTable)   window.populateProjCatTable();
+      if (window.populateYtdSideList)    window.populateYtdSideList();
+      if (window.rebuildBubbles)         window.rebuildBubbles();
+      apply();
+    });
+  }
+
+  // KPI re-aggregation: sum the relevant project array, scoped to filter selection.
+  // When no filter is active, fall back to the dashboard-wide KPI value from D.kpi
+  // (which is exact across all rows; the project arrays are top-N and would
+  // slightly under-count without a filter).
+  function sumArray(arr, key, pm, pid) {
+    let total = 0;
+    for (const r of arr || []) {
+      if (pm && r.pm !== pm) continue;
+      if (pid && r.pid !== pid) continue;
+      total += r[key] || 0;
+    }
+    return total;
+  }
+  function setKpiText(elId, value, money) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    const small = el.querySelector('small');
+    const smallHTML = small ? small.outerHTML : '';
+    const txt = money
+      ? '$ ' + Math.round(value).toLocaleString()
+      : Math.round(value).toLocaleString();
+    el.innerHTML = txt + smallHTML;
+  }
+  function recomputeKpis(pm, pid) {
+    const anyActive = !!(pm || pid);
+    const period = state.period || 'ytd';
+    const ke = D.kpi_extra || {};
+
+    if (!anyActive) {
+      if (period === 'ytd') {
+        setKpiText('hoursBig',  ke.pm_hours_ytd          ?? D.kpi.pm_hours_this_month, false);
+        setKpiText('billBig',   D.kpi.billable_hours_ytd,                              false);
+        setKpiText('expBig',    ke.field_expenses_ytd    ?? D.kpi.field_expenses_ytd,  true);
+        setKpiText('totExpBig', D.kpi.field_expenses_ytd,                              true);
+      } else {
+        setKpiText('hoursBig',  D.kpi.pm_hours_this_month,                                   false);
+        setKpiText('billBig',   ke.billable_hours_this_month ?? D.kpi.pm_hours_this_month,   false);
+        setKpiText('expBig',    ke.field_expenses_this_month ?? D.kpi.total_field_expenses_this_month, true);
+        setKpiText('totExpBig', D.kpi.total_field_expenses_this_month,                       true);
+      }
+      return;
+    }
+
+    // Filtered: sum the relevant arrays for the active period.
+    // For PM/PID filter, we have monthly_h_by_pm (per-month total hours) — use it for PM Hours.
+    function monthlyByKey(map, key, period) {
+      const r = (map || {})[key];
+      if (!r) return 0;
+      const arr = r.h || r.b || r.e || [];
+      return period === 'ytd' ? arr.reduce((a,b)=>a+(b||0),0) : (arr[PERIOD.idx] || 0);
+    }
+
+    // Helper: pick the expense series for the active filter.
+    // The monthly_by_pm / monthly_by_pid maps contain {b:[5], e:[5]} per key — full
+    // YTD coverage, no top-N truncation, so KPI numbers match reality even when a
+    // PM's individual projects fall outside the displayed tables.
+    //
+    // CRITICAL: when a PID is selected, do NOT fall back to the PM's series if
+    // that PID has no expenses — return zero. Falling through would show the
+    // PM's full expense total against a project that has none, contradicting
+    // the empty expense tables and confusing the user.
+    function expSeries() {
+      if (pid) {
+        const r = (D.monthly_by_pid || {})[pid];
+        return (r && r.e) ? r.e : PERIOD.zeros();
+      }
+      if (pm) {
+        const r = (D.monthly_by_pm || {})[pm];
+        return (r && r.e) ? r.e : PERIOD.zeros();
+      }
+      return PERIOD.zeros();
+    }
+
+    if (period === 'ytd') {
+      // PM Hours YTD from monthly_h_by_pm (total hours, not billable)
+      let pmHrs = 0;
+      if (pid) pmHrs = monthlyByKey(D.monthly_h_by_pid, pid, 'ytd');
+      else if (pm) pmHrs = monthlyByKey(D.monthly_h_by_pm, pm, 'ytd');
+      setKpiText('hoursBig', pmHrs, false);
+      // Billable YTD from monthly_by_pm.b
+      let bill = 0;
+      if (pid) bill = monthlyByKey(D.monthly_by_pid, pid, 'ytd');
+      else if (pm) bill = monthlyByKey(D.monthly_by_pm, pm, 'ytd');
+      setKpiText('billBig', bill, false);
+      // Field Exp YTD — sum monthly e[] from monthly_by_pm/pid (complete data)
+      const ytdExp = expSeries().reduce((a, b) => a + (b || 0), 0);
+      setKpiText('expBig',    ytdExp, true);
+      setKpiText('totExpBig', ytdExp, true);
+    } else {
+      // This Month
+      let pmHrs = 0;
+      if (pid) pmHrs = monthlyByKey(D.monthly_h_by_pid, pid, 'month');
+      else if (pm) pmHrs = monthlyByKey(D.monthly_h_by_pm, pm, 'month');
+      setKpiText('hoursBig', pmHrs, false);
+      let bill = 0;
+      if (pid) bill = monthlyByKey(D.monthly_by_pid, pid, 'month');
+      else if (pm) bill = monthlyByKey(D.monthly_by_pm, pm, 'month');
+      setKpiText('billBig', bill, false);
+      // Current-month expense from the last monthly slot
+      const monthExp = expSeries()[PERIOD.idx] || 0;
+      setKpiText('expBig',    monthExp, true);
+      setKpiText('totExpBig', monthExp, true);
+    }
+  }
+
+  function apply() {
+    // If a PM is selected, drop any Project ID that doesn't belong to that PM.
+    if (state.pm) {
+      const allowed = pmToPids[state.pm];
+      if (state.pid && (!allowed || !allowed.has(state.pid))) {
+        state.pid = '';
+      }
+    }
+    const { pm, pid } = state;
+    const anyActive = !!(pm || pid);
+
+    tables.forEach(table => {
+      let rank = 0;
+      Array.from(table.querySelectorAll('tbody tr')).forEach(r => {
+        const matchPm  = !pm  || r.dataset.pm  === pm;
+        const matchPid = !pid || r.dataset.pid === pid;
+        const match = matchPm && matchPid;
+        r.style.display = match ? '' : 'none';
+        if (match) {
+          // Only re-number rows that carry an .idx (project-header rows in
+          // pivot-grouped tables, or plain top-N rows in the YTD-side list).
+          const idx = r.querySelector('.idx');
+          if (idx) { rank++; idx.textContent = rank; }
+        }
+      });
+    });
+
+    // Recompute top-row KPIs against the current filter + period
+    recomputeKpis(pm, pid);
+
+    // Recompute sparkline monthly series for the current filter
+    if (window.updateSparklinesForFilter) window.updateSparklinesForFilter(pm, pid);
+
+    // Rebuild bubbles so their totals reflect the active filter
+    if (window.rebuildBubbles) window.rebuildBubbles();
+
+    // Update every period label on the dashboard to match the active period
+    const periodText = state.period === 'ytd'
+      ? PERIOD.ytd
+      : PERIOD.month;
+    document.querySelectorAll('span.period').forEach(el => {
+      el.textContent = periodText;
+    });
+    // Period button visual state
+    if (els.periodBtn) {
+      els.periodVal.textContent = state.period === 'ytd' ? 'YTD' : 'This Month';
+      els.periodBtn.classList.toggle('active', state.period === 'month');
+      els.periodBtn.setAttribute('aria-pressed', String(state.period === 'month'));
+    }
+
+    // Update buttons + indicators. Project value shows the friendly name
+    // (PID lives in the title attribute for hover-disclosure).
+    els.pmVal.textContent  = pm  || 'All';
+    els.pidVal.textContent = pid ? pidLabel(pid) : 'All';
+    els.pidVal.title       = pid || '';
+
+    // Top-left summary card — mirrors the current filter + period selection.
+    const sumPm     = document.getElementById('summaryPm');
+    const sumPid    = document.getElementById('summaryPid');
+    const sumPeriod = document.getElementById('summaryPeriod');
+    if (sumPm) {
+      sumPm.textContent = pm || 'All';
+      sumPm.classList.toggle('muted', !pm);
+    }
+    if (sumPid) {
+      sumPid.textContent = pid ? pidLabel(pid) : 'All Projects';
+      sumPid.title       = pid || '';
+      sumPid.classList.toggle('muted', !pid);
+    }
+    if (sumPeriod) {
+      sumPeriod.textContent = state.period === 'ytd' ? PERIOD.sumYtd : PERIOD.sumMonth;
+    }
+    els.pmBtn.classList.toggle('active',  !!pm);
+    els.pidBtn.classList.toggle('active', !!pid);
+    els.clearBtn.hidden = !anyActive;
+    document.body.classList.toggle('filters-active', anyActive);
+
+    // Mark menu options selected (use rerender hook if available)
+    [els.pmMenu, els.pidMenu].forEach(menu => {
+      if (menu._rerender) menu._rerender();
+    });
+  }
+
+  apply();
+})();
+
+/* ====== Sparklines ====== */
+// Read the system font stack from the CSS variable so JS-driven chart text
+// stays in sync with the rest of the dashboard typography.
+const APPLE_FONT_STACK = getComputedStyle(document.documentElement)
+  .getPropertyValue('--font-stack').trim()
+  || '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, "Segoe UI", "Helvetica Neue", Arial, sans-serif';
+Chart.defaults.font.family = APPLE_FONT_STACK;
+Chart.defaults.color = '#7a6a52';
+
+// Sparkline palette resolved at render time so the Model X toggle can swap
+// between warm-brown and cool-gray without recreating chart instances.
+function sparkPalette() {
+  const modelX = document.body.classList.contains('model-x');
+  if (modelX) return {
+    line:        'rgba(200,205,215,.85)',
+    fillTop:     'rgba(200,205,215,.22)',
+    fillBottom:  'rgba(200,205,215,0)',
+    dashed:      'rgba(200,205,215,.35)',
+    tick:        '#7c8088',
+    grid:        'rgba(200,205,215,.08)'
+  };
+  return {
+    line:        '#8a6a3a',
+    fillTop:     'rgba(173,140,99,.30)',
+    fillBottom:  'rgba(173,140,99,0)',
+    dashed:      'rgba(122,106,82,.45)',
+    tick:        '#a89878',
+    grid:        'rgba(122,106,82,.08)'
+  };
+}
+
+function sparkline(canvasId, current, previous, labels) {
+  const p = sparkPalette();
+  return new Chart(document.getElementById(canvasId), {
+    type:'line',
+    data:{
+      labels: (labels && labels.length) ? labels : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].slice(0, PERIOD.idx + 1),
+      datasets:[
+        {
+          data: previous,
+          borderColor: p.dashed,
+          borderDash: [4,4], borderWidth: 1.4,
+          pointRadius: 0, tension: .4, fill: false
+        },
+        {
+          data: current,
+          borderColor: p.line,
+          borderWidth: 2, pointRadius: 0, tension: .4,
+          fill: true,
+          backgroundColor: (ctx) => {
+            const cp = sparkPalette();   // re-resolve so fill follows theme
+            const c = ctx.chart.ctx.createLinearGradient(0,0,0,150);
+            c.addColorStop(0, cp.fillTop);
+            c.addColorStop(1, cp.fillBottom);
+            return c;
+          }
+        }
+      ]
+    },
+    options:{
+      responsive: true, maintainAspectRatio: false,
+      animation:{ duration: 1300, easing:'easeOutCubic' },
+      plugins:{ legend:{ display:false }, tooltip:{ enabled:false } },
+      scales:{
+        x:{ grid:{ display:false }, ticks:{ color: p.tick, font:{size:10} } },
+        y:{ grid:{ color: p.grid }, ticks:{ color: p.tick, font:{size:10} } }
+      }
+    }
+  });
+}
+window._sparkCharts = {};
+(function initSparklines() {
+  const sp = D.sparkline || { billable_hours: [], field_expenses: [] };
+  window._sparkCharts.bill = sparkline('billSpark', sp.billable_hours, [], sp.labels);
+  window._sparkCharts.exp  = sparkline('expSpark',  sp.field_expenses, [], sp.labels);
+})();
+
+// Repaints both sparklines in-place to match the active theme. The Model X
+// toggle invokes this after flipping body.model-x.
+window.applySparkTheme = function() {
+  const p = sparkPalette();
+  ['bill','exp'].forEach(k => {
+    const ch = window._sparkCharts[k];
+    if (!ch) return;
+    ch.data.datasets[0].borderColor = p.dashed;
+    ch.data.datasets[1].borderColor = p.line;
+    // backgroundColor is a function, re-evaluated by Chart.js on update
+    ch.options.scales.x.ticks.color = p.tick;
+    ch.options.scales.y.ticks.color = p.tick;
+    ch.options.scales.y.grid.color  = p.grid;
+    ch.update('none');
+  });
+};
+
+// Called by the global filter's apply() with the current PM/PID selection.
+// Recomputes monthly billable + expense series from per-PM or per-PID rollups
+// in the data file and pushes them into the existing Chart.js instances.
+window.updateSparklinesForFilter = function(pm, pid) {
+  const sp = D.sparkline || { billable_hours: [], field_expenses: [] };
+  let billSeries = sp.billable_hours;
+  let expSeries  = sp.field_expenses;
+
+  if (pid) {
+    const r = (D.monthly_by_pid || {})[pid];
+    if (r) { billSeries = r.b || PERIOD.zeros(); expSeries = r.e || PERIOD.zeros(); }
+  } else if (pm) {
+    const r = (D.monthly_by_pm || {})[pm];
+    if (r) { billSeries = r.b || PERIOD.zeros(); expSeries = r.e || PERIOD.zeros(); }
+  }
+  if (window._sparkCharts.bill) {
+    window._sparkCharts.bill.data.datasets[1].data = billSeries;
+    window._sparkCharts.bill.update('none');
+  }
+  if (window._sparkCharts.exp) {
+    window._sparkCharts.exp.data.datasets[1].data = expSeries;
+    window._sparkCharts.exp.update('none');
+  }
+};
+
+/* =================================================================
+   BUBBLE PHYSICS — draggable / smashable, settles when undisturbed
+   ================================================================= */
+function makeBubbles(containerId, legendId, data, opts={}) {
+  const { valueSuffix='', formatValue, onLegendClick } = opts;
+  const container = document.getElementById(containerId);
+  let W = container.clientWidth || 320;
+  let H = container.clientHeight || 240;
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('preserveAspectRatio','xMidYMid meet');
+  svg.style.touchAction = 'none';
+  svg.style.cursor = 'grab';
+  container.innerHTML = '';
+  container.appendChild(svg);
+
+  const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
+  svg.appendChild(defs);
+
+  const max = Math.max(...data.map(d=>d.value));
+  const minR = 14;
+  let maxR = Math.min(W,H) * 0.182;
+  const radius = v => minR + (maxR - minR) * Math.sqrt(v/max);
+
+  function fmt(v) {
+    if (formatValue) return formatValue(v);
+    return v.toLocaleString() + valueSuffix;
+  }
+
+  // Model X overrides each bubble's tri-stop gradient to a cool gray scaled
+  // by relative size: the biggest bubble in the set gets the lightest shade,
+  // the smallest gets the darkest. Same gray feeds the legend dot below so
+  // the two stay in sync.
+  const modelX = document.body.classList.contains('model-x');
+  const maxVal = Math.max(...data.map(d => d.value || 0)) || 1;
+  // Lerp between two hex colors. t=0 -> a, t=1 -> b.
+  function lerpHex(a, b, t) {
+    const ah = parseInt(a.slice(1), 16), bh = parseInt(b.slice(1), 16);
+    const ar = (ah>>16)&0xff, ag = (ah>>8)&0xff, ab2 = ah&0xff;
+    const br = (bh>>16)&0xff, bg = (bh>>8)&0xff, bb = bh&0xff;
+    const r  = Math.round(ar  + (br  - ar)  * t);
+    const g  = Math.round(ag  + (bg  - ag)  * t);
+    const b2 = Math.round(ab2 + (bb  - ab2) * t);
+    return '#' + ((1<<24) | (r<<16) | (g<<8) | b2).toString(16).slice(1);
+  }
+  function themedBubble(d) {
+    if (!modelX) return d;
+    // Relative size in [0, 1]. Square-rooted so the shade gradation tracks
+    // perceived bubble size (area), not raw value.
+    const t = Math.sqrt((d.value || 0) / maxVal);
+    return {
+      ...d,
+      // Body: light gray for biggest -> mid gray for smallest
+      color:     lerpHex('#5a5d66', '#b0b4bd', t),
+      // Highlight: a touch brighter than the body
+      highlight: lerpHex('#7e828c', '#dadce3', t),
+      // Shadow: a step darker than the body
+      shadow:    lerpHex('#2c2f37', '#5d6168', t)
+    };
+  }
+  const strokeOpacityFor = () => modelX ? '0.35' : '0.45';
+
+  // Build a themed copy of the data once so the legend (rendered below) sees
+  // the same colors as the bubbles.
+  const themedData = data.map(themedBubble);
+
+  const bubbles = data.map((d,i) => {
+    const t = themedData[i];
+    const r = radius(d.value);
+    const g = document.createElementNS('http://www.w3.org/2000/svg','radialGradient');
+    g.setAttribute('id', `grad-${containerId}-${i}`);
+    g.setAttribute('cx','35%'); g.setAttribute('cy','28%'); g.setAttribute('r','75%');
+    g.innerHTML = `
+      <stop offset="0%"  stop-color="${t.highlight||'#ffffff'}" stop-opacity="${modelX ? '0.55' : '0.85'}"/>
+      <stop offset="35%" stop-color="${t.color}" stop-opacity="${modelX ? '0.65' : '0.95'}"/>
+      <stop offset="100%" stop-color="${t.shadow||t.color}" stop-opacity="${modelX ? '0.80' : '1'}"/>
+    `;
+    defs.appendChild(g);
+
+    const group = document.createElementNS('http://www.w3.org/2000/svg','g');
+    group.style.cursor = 'grab';
+    const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('r', r);
+    circle.setAttribute('fill', `url(#grad-${containerId}-${i})`);
+    circle.setAttribute('stroke', t.color);
+    circle.setAttribute('stroke-opacity', strokeOpacityFor());
+    circle.setAttribute('stroke-width', '1');
+    group.appendChild(circle);
+
+    const value = document.createElementNS('http://www.w3.org/2000/svg','text');
+    value.setAttribute('text-anchor','middle');
+    value.setAttribute('y', r < 38 ? '4' : '-1');
+    value.setAttribute('fill','#fff');
+    value.setAttribute('font-family', APPLE_FONT_STACK);
+    value.setAttribute('font-size', Math.max(11, Math.min(15, r*0.34)));
+    value.setAttribute('font-weight','600');
+    value.textContent = fmt(d.value);
+    group.appendChild(value);
+
+    // Always show the category / phase name. For bubbles big enough to fit
+    // it inside (r >= 25), it sits below the value text. For smaller bubbles,
+    // it floats just below the circle so tiny filtered bubbles ("$ 65",
+    // "$ 155", etc.) still get a label.
+    {
+      const label = document.createElementNS('http://www.w3.org/2000/svg','text');
+      label.setAttribute('text-anchor','middle');
+      label.setAttribute('font-family', APPLE_FONT_STACK);
+      label.setAttribute('font-style','italic');
+      if (r >= 25) {
+        label.setAttribute('y', Math.max(11, Math.min(15, r*0.34)) + 2);
+        label.setAttribute('fill', 'rgba(255,255,255,.85)');
+        label.setAttribute('font-size', Math.max(9, Math.min(11, r*0.22)));
+      } else {
+        // Outside the bubble: white-ish on the dark Model X bg, dark on
+        // the light theme so it reads either way.
+        label.setAttribute('y', r + 11);
+        label.setAttribute('fill', modelX ? 'rgba(232,234,239,.85)' : 'rgba(74,51,32,.85)');
+        label.setAttribute('font-size', 9.5);
+      }
+      label.textContent = d.label;
+      group.appendChild(label);
+    }
+
+    svg.appendChild(group);
+
+    const b = {
+      r, label: d.label, value: d.value, color: d.color,
+      group, circle,
+      // Start each bubble offset from center with a moderate kick so the
+      // warmup motion is clearly visible. Less than the chaotic 2.2x but
+      // more than the near-static 0.6x.
+      x: W/2 + (Math.random()-0.5)*W*0.6,
+      y: H/2 + (Math.random()-0.5)*H*0.6,
+      vx: (Math.random()-0.5)*1.2,
+      vy: (Math.random()-0.5)*1.2,
+      mass: r*r,
+      visible: true,
+      dragging: false,
+      energy: 1
+    };
+    group.addEventListener('pointerdown', (ev) => startDrag(ev, b));
+    return b;
+  });
+
+  // ---------- Drag ----------
+  let drag = null;
+  function toLocal(ev) {
+    const pt = svg.createSVGPoint();
+    pt.x = ev.clientX; pt.y = ev.clientY;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return { x: ev.clientX, y: ev.clientY };
+    const lp = pt.matrixTransform(ctm.inverse());
+    return { x: lp.x, y: lp.y };
+  }
+  function startDrag(ev, b) {
+    ev.preventDefault();
+    svg.setPointerCapture(ev.pointerId);
+    const p = toLocal(ev);
+    drag = { bubble: b, offX: p.x - b.x, offY: p.y - b.y,
+             lastX: p.x, lastY: p.y, lastT: performance.now(),
+             pointerId: ev.pointerId };
+    b.dragging = true;
+    b.vx = b.vy = 0;
+    b.group.style.cursor = 'grabbing';
+    svg.appendChild(b.group);
+    if (startDrag._wake) startDrag._wake();
+  }
+  svg.addEventListener('pointermove', (ev) => {
+    if (!drag) return;
+    const p = toLocal(ev);
+    const now = performance.now();
+    const dt = Math.max(1, now - drag.lastT);
+    drag.bubble.vx = (p.x - drag.lastX) / dt * 16;
+    drag.bubble.vy = (p.y - drag.lastY) / dt * 16;
+    drag.bubble.x = p.x - drag.offX;
+    drag.bubble.y = p.y - drag.offY;
+    drag.lastX = p.x; drag.lastY = p.y; drag.lastT = now;
+  });
+  function endDrag() {
+    if (!drag) return;
+    drag.bubble.dragging = false;
+    drag.bubble.group.style.cursor = 'grab';
+    try { svg.releasePointerCapture(drag.pointerId); } catch(e){}
+    drag = null;
+  }
+  svg.addEventListener('pointerup', endDrag);
+  svg.addEventListener('pointercancel', endDrag);
+  svg.addEventListener('pointerleave', endDrag);
+
+  // ---------- Physics — settles when undisturbed ----------
+  // Strategy:
+  //   - For the first ~2 seconds bubbles get a center pull so the cluster
+  //     forms in the middle. After that the attraction shuts off entirely.
+  //   - Damping keeps reducing speed; below SNAP, velocity goes straight to 0.
+  //   - Once nobody is moving and nobody is dragging, freeze the loop.
+  //   - Dragging or smashing wakes the system back into the warmup phase.
+  const WARMUP_MS  = 2200;   // center attraction window after start/wake
+  const COOLDOWN_MS = 900;   // hard-damping window right after warmup
+  const SNAP       = 0.50;   // speeds below this collapse to zero
+  const REST_GAP   = 0.20;   // small extra gap held during separation so
+                             // touching bubbles aren't perpetually overlapping
+
+  let warmupUntil  = performance.now() + WARMUP_MS;
+  let cooldownUntil = warmupUntil + COOLDOWN_MS;
+  let asleep = false;
+
+  function wake() {
+    asleep = false;
+    warmupUntil  = performance.now() + WARMUP_MS;
+    cooldownUntil = warmupUntil + COOLDOWN_MS;
+  }
+  startDrag._wake = wake;
+
+  function step() {
+    const now = performance.now();
+    const inWarmup   = now < warmupUntil;
+    const anyDragging = bubbles.some(b => b.dragging);
+
+    // Pre-compute orphan flag for each bubble: "no neighbor close enough to
+    // touch within 60% extra distance". Orphans get pulled harder + light
+    // damping so they can rejoin the cluster before halting.
+    const orphan = bubbles.map(b => {
+      if (!b.visible || b.dragging) return false;
+      for (const o of bubbles) {
+        if (o === b || !o.visible) continue;
+        if (Math.hypot(o.x - b.x, o.y - b.y) < (o.r + b.r) * 1.6) return false;
+      }
+      return true;
+    });
+    const anyOrphans = !inWarmup && orphan.some(Boolean);
+
+    // Extend cooldown (up to 3× normal) if orphans still need to migrate
+    const maxCooldownEnd = warmupUntil + COOLDOWN_MS * 3;
+    if (anyOrphans && now < maxCooldownEnd) {
+      cooldownUntil = Math.max(cooldownUntil, now + 80);
+    }
+    const inCooldown = !inWarmup && now < cooldownUntil;
+
+    if (asleep && !anyDragging) {
+      requestAnimationFrame(step);
+      return;
+    }
+
+    const cx = W/2, cy = H/2;
+
+    // Forces + damping
+    let maxSpeed = 0;
+    for (let i = 0; i < bubbles.length; i++) {
+      const b = bubbles[i];
+      if (!b.visible || b.dragging) continue;
+      const isOrphan = orphan[i];
+
+      // Center pull — full strength in warmup, gentle in cooldown for the
+      // cluster, but full strength again for any orphan stragglers
+      if (inWarmup) {
+        b.vx += (cx - b.x) * 0.0018;
+        b.vy += (cy - b.y) * 0.0018;
+      } else if (inCooldown) {
+        const pull = isOrphan ? 0.0022 : 0.0010;
+        b.vx += (cx - b.x) * pull;
+        b.vy += (cy - b.y) * pull;
+      }
+
+      // Damping — orphans keep momentum so they can migrate; cluster freezes
+      const damp = inWarmup ? 0.94
+                 : (inCooldown ? (isOrphan ? 0.93 : 0.65) : 0.40);
+      b.vx *= damp;
+      b.vy *= damp;
+
+      // Hard snap to zero below threshold
+      if (Math.abs(b.vx) < SNAP) b.vx = 0;
+      if (Math.abs(b.vy) < SNAP) b.vy = 0;
+
+      const sp = Math.hypot(b.vx, b.vy);
+      if (sp > maxSpeed) maxSpeed = sp;
+
+      const cap = 22;
+      if (sp > cap) { b.vx = b.vx/sp*cap; b.vy = b.vy/sp*cap; }
+    }
+
+    // Once cooldown is over, force everyone to a halt — no more arguing
+    if (!inWarmup && !inCooldown && !anyDragging) {
+      for (const b of bubbles) {
+        if (!b.dragging) { b.vx = 0; b.vy = 0; }
+      }
+      asleep = true;
+    }
+
+    // Collisions
+    for (let i=0;i<bubbles.length;i++){
+      for (let j=i+1;j<bubbles.length;j++){
+        const a = bubbles[i], b = bubbles[j];
+        if (!a.visible || !b.visible) continue;
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const dist = Math.hypot(dx,dy) || 0.001;
+        const minDist = a.r + b.r + REST_GAP;
+        if (dist < minDist) {
+          const overlap = minDist - dist;
+          const nx = dx/dist, ny = dy/dist;
+          // Separation only
+          if (a.dragging && !b.dragging) { b.x += nx*overlap; b.y += ny*overlap; }
+          else if (b.dragging && !a.dragging) { a.x -= nx*overlap; a.y -= ny*overlap; }
+          else if (!a.dragging && !b.dragging) {
+            const t = a.mass + b.mass;
+            a.x -= nx*overlap*(b.mass/t); a.y -= ny*overlap*(b.mass/t);
+            b.x += nx*overlap*(a.mass/t); b.y += ny*overlap*(a.mass/t);
+          }
+          // Velocity exchange — only for real impacts, never micro-contacts
+          const va = a.vx*nx + a.vy*ny;
+          const vb = b.vx*nx + b.vy*ny;
+          const relSpeed = va - vb;
+          if (relSpeed > 0.5) {
+            const rest = 0.82;
+            const newVa = ((a.mass-b.mass)*va + 2*b.mass*vb) / (a.mass+b.mass);
+            const newVb = ((b.mass-a.mass)*vb + 2*a.mass*va) / (a.mass+b.mass);
+            const dva = (newVa - va) * rest;
+            const dvb = (newVb - vb) * rest;
+            if (!a.dragging) { a.vx += dva*nx; a.vy += dva*ny; }
+            if (!b.dragging) { b.vx += dvb*nx; b.vy += dvb*ny; }
+            wake();
+          }
+        }
+      }
+    }
+
+    // Integrate + walls
+    for (const b of bubbles) {
+      if (!b.visible) continue;
+      if (!b.dragging) { b.x += b.vx; b.y += b.vy; }
+      if (b.x < b.r)   { b.x = b.r;   if (Math.abs(b.vx) > 1) { b.vx =  Math.abs(b.vx)*0.6; wake(); } else b.vx = 0; }
+      if (b.x > W-b.r) { b.x = W-b.r; if (Math.abs(b.vx) > 1) { b.vx = -Math.abs(b.vx)*0.6; wake(); } else b.vx = 0; }
+      if (b.y < b.r)   { b.y = b.r;   if (Math.abs(b.vy) > 1) { b.vy =  Math.abs(b.vy)*0.6; wake(); } else b.vy = 0; }
+      if (b.y > H-b.r) { b.y = H-b.r; if (Math.abs(b.vy) > 1) { b.vy = -Math.abs(b.vy)*0.6; wake(); } else b.vy = 0; }
+      b.group.setAttribute('transform', `translate(${b.x},${b.y})`);
+    }
+
+    requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+
+  // ---------- Legend (click name to drill into projects, click checkbox to toggle) ----------
+  const legend = document.getElementById(legendId);
+  legend.innerHTML = themedData.map((d,i)=>`
+    <label class="legend-row">
+      <input type="checkbox" data-i="${i}" checked />
+      <span class="dot" style="background:${d.color}"></span>
+      <span class="legend-name" data-i="${i}" ${onLegendClick && d.projects && d.projects.length ? 'role="button" title="View projects"' : ''}>${d.label}</span>
+    </label>`).join('');
+  legend.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('change', e => {
+      const i = +e.target.dataset.i;
+      bubbles[i].visible = e.target.checked;
+      bubbles[i].group.style.display = e.target.checked ? '' : 'none';
+    });
+  });
+  if (onLegendClick) {
+    legend.querySelectorAll('.legend-name').forEach(span => {
+      span.addEventListener('click', e => {
+        e.preventDefault();
+        const i = +span.dataset.i;
+        if (data[i] && data[i].projects && data[i].projects.length) onLegendClick(data[i]);
+      });
+    });
+  }
+
+  // Watch the container itself (not window) so grid reflows trigger updates.
+  // On every size change: rescale bubble positions, recompute radii, and
+  // wake the simulation so everyone re-clusters at the new center.
+  function handleResize() {
+    const nw = container.clientWidth, nh = container.clientHeight;
+    if (!nw || !nh) return;
+    if (nw === W && nh === H) return;
+
+    const sx = nw / W, sy = nh / H;
+    W = nw; H = nh;
+    maxR = Math.min(W, H) * 0.182;
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+    for (const b of bubbles) {
+      // Scale position to new dimensions
+      b.x *= sx; b.y *= sy;
+      // Recompute radius for the new canvas
+      const newR = radius(b.value);
+      b.r = newR;
+      b.mass = newR * newR;
+      b.circle.setAttribute('r', newR);
+      // Clamp to new bounds
+      if (b.x < b.r) b.x = b.r;
+      if (b.x > W - b.r) b.x = W - b.r;
+      if (b.y < b.r) b.y = b.r;
+      if (b.y > H - b.r) b.y = H - b.r;
+      // Kill stale velocity
+      b.vx = 0; b.vy = 0;
+    }
+    // Re-cluster everyone at the new center
+    wake();
+  }
+
+  const ro = new ResizeObserver(handleResize);
+  ro.observe(container);
+}
+
+/* ====== Data (derived from DASH_DATA) ====== */
+const BUBBLE_PALETTE = [
+  {color:'#a06b3a', highlight:'#e6c79b', shadow:'#6e4520'},
+  {color:'#8a6a3a', highlight:'#dfc095', shadow:'#5a4220'},
+  {color:'#ad8c63', highlight:'#ebd7b3', shadow:'#74583a'},
+  {color:'#6a8a5a', highlight:'#cbe0bc', shadow:'#3f5934'},
+  {color:'#c89b4a', highlight:'#f0d9a0', shadow:'#8a6620'},
+  {color:'#8a8a4a', highlight:'#d8d89a', shadow:'#5a5a2a'},
+  {color:'#b8865a', highlight:'#ebcfa9', shadow:'#7a5430'},
+];
+function paletteOf(i) { return BUBBLE_PALETTE[i % BUBBLE_PALETTE.length]; }
+
+// Bubble data is period-aware AND filter-aware. When a PM/Project filter is
+// active, each phase/category total is recomputed by summing only the matching
+// projects in its sub-list. Phases that have no matching projects are dropped.
+function getFilter() {
+  return {
+    pm:  (window.getFilterPm  && window.getFilterPm())  || '',
+    pid: (window.getFilterPid && window.getFilterPid()) || '',
+  };
+}
+function filterProjects(projects, pm, pid) {
+  return projects.filter(p =>
+    (!pm  || p.pm  === pm) &&
+    (!pid || p.pid === pid)
+  );
+}
+function buildPhaseData() {
+  const period = (window.getPeriod && window.getPeriod()) || 'ytd';
+  const src = period === 'ytd'
+    ? (D.phases_ytd || D.phases_this_month || [])
+    : (D.phases_this_month || []);
+  const { pm, pid } = getFilter();
+  let groups = src.map(p => {
+    const projects = (pm || pid) ? filterProjects(p.projects || [], pm, pid) : (p.projects || []);
+    const value = (pm || pid)
+      ? projects.reduce((s, pr) => s + (pr.hours || 0), 0)
+      : p.hours;
+    return { phase: p.phase, hours: value, projects };
+  }).filter(p => p.hours > 0);
+  groups.sort((a, b) => b.hours - a.hours);
+  return groups.slice(0, 7).map((p, i) => ({
+    label: p.phase, value: Math.round(p.hours), ...paletteOf(i),
+    projects: p.projects
+  }));
+}
+function buildCategoryData() {
+  const period = (window.getPeriod && window.getPeriod()) || 'ytd';
+  const src = period === 'ytd'
+    ? (D.categories_ytd || [])
+    : (D.categories_this_month || D.categories_ytd || []);
+  const { pm, pid } = getFilter();
+  let groups = src.map(c => {
+    const projects = (pm || pid) ? filterProjects(c.projects || [], pm, pid) : (c.projects || []);
+    const value = (pm || pid)
+      ? projects.reduce((s, pr) => s + (pr.amount || 0), 0)
+      : c.amount;
+    return { category: c.category, amount: value, projects };
+  }).filter(c => c.amount > 0);
+  groups.sort((a, b) => b.amount - a.amount);
+  return groups.slice(0, 7).map((c, i) => ({
+    label: c.category, value: Math.round(c.amount), ...paletteOf(i),
+    projects: c.projects
+  }));
+}
+const hoursData = buildPhaseData();
+const expData   = buildCategoryData();
+
+/* ====== Populate dynamic tables ====== */
+function rowFor(item, valueLabel, rank) {
+  const tr = document.createElement('tr');
+  if (item.pm)  tr.dataset.pm  = item.pm;
+  if (item.pid) tr.dataset.pid = item.pid;
+  const value = item.hours !== undefined
+    ? Math.round(item.hours).toLocaleString() + ' hr'
+    : '$ ' + Math.round(item.amount).toLocaleString();
+  tr.innerHTML = `
+    <td><span class="idx">${rank}</span>${item.name}</td>
+    <td>${item.pm || '<span class="muted">—</span>'}</td>
+    <td class="num">${value}</td>`;
+  return tr;
+}
+function populateProjTable(tableId, items) {
+  const tbody = document.querySelector(`#${tableId} tbody`);
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  items.forEach((it, i) => tbody.appendChild(rowFor(it, '', i + 1)));
+}
+// "Overhead Global" rolls every PM's admin / overhead hours and expenses into
+// one giant pseudo-project. It dwarfs real projects in the by-project tables
+// and isn't actionable, so strip it from the project tables + side list.
+function isOverheadGlobal(name) {
+  return typeof name === 'string' && /overhead\s+global/i.test(name);
+}
+// Pivot-style render: group rows by project; project header row shows total,
+// indented sub-rows show employee + amount. Filter targets data-pm/data-pid on
+// every row in a group so the whole group hides/shows together.
+function groupByProject(rows, valueKey) {
+  const groups = new Map();
+  (rows || []).forEach(it => {
+    if (isOverheadGlobal(it.name)) return;
+    const key = it.pid || '(no-pid)';
+    if (!groups.has(key)) groups.set(key, {
+      name: it.name, pm: it.pm || '', pid: it.pid || '',
+      sub: [], total: 0
+    });
+    const g = groups.get(key);
+    g.sub.push(it);
+    g.total += it[valueKey] || 0;
+  });
+  // Sort projects by total desc, sub-rows by value desc
+  const arr = Array.from(groups.values()).sort((a, b) => b.total - a.total);
+  arr.forEach(g => g.sub.sort((a, b) => (b[valueKey] || 0) - (a[valueKey] || 0)));
+  return arr;
+}
+function fmtHr(v) { return Math.round(v || 0).toLocaleString() + ' hr'; }
+function fmtAmt(v) { return '$ ' + Math.round(v || 0).toLocaleString(); }
+
+// Toggle a group's sub-rows. Uses a class so that filter-driven display:''
+// reverts back to "collapsed" hiding via CSS, not inline style.
+function toggleGroup(hdr) {
+  const groupId = hdr.dataset.groupId;
+  const collapsed = hdr.classList.toggle('collapsed');
+  const tbody = hdr.parentElement;
+  Array.from(tbody.querySelectorAll(`tr.sub-row[data-group-id="${groupId}"]`))
+    .forEach(r => r.classList.toggle('hidden-by-group', collapsed));
+  const caret = hdr.querySelector('.group-toggle');
+  if (caret) caret.textContent = collapsed ? '▸' : '▾';
+}
+
+function renderPivotPETable(tableId, groups, valueKey, fmt) {
+  const tbody = document.querySelector(`#${tableId} tbody`);
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  let projIdx = 0;
+  groups.forEach(g => {
+    projIdx += 1;
+    const gid = `${tableId}-g${projIdx}`;
+    const hdr = document.createElement('tr');
+    hdr.className = 'proj-header';
+    hdr.dataset.groupId = gid;
+    if (g.pm)  hdr.dataset.pm  = g.pm;
+    if (g.pid) hdr.dataset.pid = g.pid;
+    const pmBit = g.pm ? `<span class="banner-pm">· ${g.pm}</span>` : '';
+    hdr.innerHTML = `
+      <td class="banner" colspan="2">
+        <div class="banner-inner">
+          <div class="banner-name">
+            <span class="idx">${projIdx}</span><span class="group-toggle">▾</span>${g.name}${pmBit}
+          </div>
+          <div class="banner-total">${fmt(g.total)}</div>
+        </div>
+      </td>`;
+    hdr.addEventListener('click', () => toggleGroup(hdr));
+    tbody.appendChild(hdr);
+    g.sub.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.className = 'sub-row in-group';
+      tr.dataset.groupId = gid;
+      if (g.pm)  tr.dataset.pm  = g.pm;
+      if (g.pid) tr.dataset.pid = g.pid;
+      tr.innerHTML = `
+        <td>${r.employee || '<span class="muted">—</span>'}</td>
+        <td class="num">${fmt(r[valueKey])}</td>`;
+      tbody.appendChild(tr);
+    });
+  });
+}
+
+window.populateHoursPETable = function() {
+  const period = (window.getPeriod && window.getPeriod()) || 'ytd';
+  const src = period === 'ytd'
+    ? (D.hours_by_project_employee_ytd || D.hours_by_project_employee_this_month || [])
+    : (D.hours_by_project_employee_this_month || []);
+  renderPivotPETable('hoursByProjTable', groupByProject(src, 'hours'), 'hours', fmtHr);
+};
+
+window.populateExpPETable = function() {
+  const period = (window.getPeriod && window.getPeriod()) || 'ytd';
+  const src = period === 'ytd'
+    ? (D.expenses_by_project_employee_ytd || [])
+    : (D.expenses_by_project_employee_this_month || D.expenses_by_project_employee_ytd || []);
+  renderPivotPETable('expByEmpTable', groupByProject(src, 'amount'), 'amount', fmtAmt);
+};
+
+window.populateHoursPETable();
+window.populateExpPETable();
+
+window.populateProjCatTable = function() {
+  const period = (window.getPeriod && window.getPeriod()) || 'ytd';
+  const src = period === 'ytd'
+    ? (D.expenses_by_project_category_ytd || [])
+    : (D.expenses_by_project_category_this_month || D.expenses_by_project_category_ytd || []);
+  const tbody = document.querySelector('#expByProjCatTable tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  let projIdx = 0;
+  src.forEach(it => {
+    if (isOverheadGlobal(it.name)) return;
+    projIdx += 1;
+    const gid = `expByProjCatTable-g${projIdx}`;
+    const hdr = document.createElement('tr');
+    hdr.className = 'proj-header';
+    hdr.dataset.groupId = gid;
+    if (it.pm)  hdr.dataset.pm  = it.pm;
+    if (it.pid) hdr.dataset.pid = it.pid;
+    const pmBit = it.pm ? `<span class="banner-pm">· ${it.pm}</span>` : '';
+    hdr.innerHTML = `
+      <td class="banner" colspan="2">
+        <div class="banner-inner">
+          <div class="banner-name">
+            <span class="idx">${projIdx}</span><span class="group-toggle">▾</span>${it.name}${pmBit}
+          </div>
+          <div class="banner-total">${fmtAmt(it.amount)}</div>
+        </div>
+      </td>`;
+    hdr.addEventListener('click', () => toggleGroup(hdr));
+    tbody.appendChild(hdr);
+    (it.categories || []).forEach(c => {
+      const tr = document.createElement('tr');
+      tr.className = 'sub-row in-group';
+      tr.dataset.groupId = gid;
+      if (it.pm)  tr.dataset.pm  = it.pm;
+      if (it.pid) tr.dataset.pid = it.pid;
+      tr.innerHTML = `
+        <td>${c.category}</td>
+        <td class="num">${fmtAmt(c.amount)}</td>`;
+      tbody.appendChild(tr);
+    });
+  });
+};
+window.populateProjCatTable();
+
+// Largest Expenses side list — period-aware
+window.populateYtdSideList = function() {
+  const period = (window.getPeriod && window.getPeriod()) || 'ytd';
+  const src = period === 'ytd'
+    ? (D.expenses_by_project_category_ytd || [])
+    : (D.expenses_by_project_category_this_month || D.expenses_by_project_category_ytd || []);
+  const tbody = document.querySelector('#ytdTable tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  // Skip Overhead Global — it's a pseudo-project for admin overhead and
+  // dwarfs the real projects in this list.
+  const filtered = src.filter(it => !isOverheadGlobal(it.name));
+  filtered.forEach((it, i) => {
+    const tr = document.createElement('tr');
+    if (it.pm)  tr.dataset.pm  = it.pm;
+    if (it.pid) tr.dataset.pid = it.pid;
+    tr.innerHTML = `
+      <td><span class="idx">${i + 1}</span>${it.name}</td>
+      <td class="num">$ ${Math.round(it.amount).toLocaleString()}</td>`;
+    tbody.appendChild(tr);
+  });
+};
+window.populateYtdSideList();
+
+function renderBubbles() {
+  const phaseData = buildPhaseData();
+  const catData   = buildCategoryData();
+  makeBubbles('hoursBubbles', 'hoursLegend', phaseData, {
+    valueSuffix: ' hr',
+    onLegendClick: (group) => showProjectDrill(group, 'hours')
+  });
+  makeBubbles('expBubbles', 'expLegend', catData, {
+    formatValue: v => '$ ' + v.toLocaleString(),
+    onLegendClick: (group) => showProjectDrill(group, 'amount')
+  });
+}
+// Exposed so the Period toggle can rebuild bubbles when the active period flips
+window.rebuildBubbles = function() {
+  document.getElementById('hoursBubbles').innerHTML = '';
+  document.getElementById('expBubbles').innerHTML = '';
+  document.getElementById('hoursLegend').innerHTML = '';
+  document.getElementById('expLegend').innerHTML = '';
+  renderBubbles();
+};
+// Defer the initial bubble render past first paint. Parsing 5+ MB of
+// transaction data takes a beat, and the bubbles' warmup animation was
+// firing while the dashboard was still painting — so users were seeing
+// the bubbles already settled. Push to a clean paint frame ~250 ms after
+// load so the warmup bounce is visible against a fully-rendered dashboard.
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    requestAnimationFrame(renderBubbles);
+  }, 250);
+});
+
+/* ====== Project drill-down modal (legend click → list of projects) ====== */
+function showProjectDrill(group, valueKey) {
+  let modal = document.getElementById('drillModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'drillModal';
+    modal.className = 'drill-modal';
+    modal.innerHTML = `
+      <div class="drill-card">
+        <button class="drill-close" type="button" aria-label="Close">×</button>
+        <div class="drill-title"></div>
+        <div class="drill-total"></div>
+        <table class="dx"><thead><tr><th>#&nbsp;Project</th><th>PM</th><th>Value</th></tr></thead><tbody></tbody></table>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e => { if (e.target === modal) modal.hidden = true; });
+    modal.querySelector('.drill-close').addEventListener('click', () => { modal.hidden = true; });
+  }
+  modal.querySelector('.drill-title').textContent = group.label;
+  const isMoney = valueKey === 'amount';
+  const total = group.projects.reduce((s, p) => s + (p[valueKey] || 0), 0);
+  modal.querySelector('.drill-total').textContent =
+    'Total: ' + (isMoney ? '$ ' + Math.round(total).toLocaleString() : Math.round(total).toLocaleString() + ' hr');
+  const tbody = modal.querySelector('tbody');
+  tbody.innerHTML = '';
+  group.projects.forEach((p, i) => {
+    const tr = document.createElement('tr');
+    const val = p[valueKey] || 0;
+    tr.innerHTML = `
+      <td><span class="idx">${i + 1}</span>${p.name}</td>
+      <td>${p.pm || '<span class="muted">—</span>'}</td>
+      <td class="num">${isMoney ? '$ ' + Math.round(val).toLocaleString() : Math.round(val).toLocaleString() + ' hr'}</td>`;
+    tbody.appendChild(tr);
+  });
+  modal.hidden = false;
+}
+
+/* =====================================================================
+   TRANSACTION DRILL-DOWNS
+   ---------------------------------------------------------------------
+   Every number on the dashboard can be clicked to open a modal listing
+   the individual timesheet / expense entries that built it up. The
+   transactions live in D.transactions in compact form (integer-indexed
+   into lookup tables); decode happens at drill time.
+   ===================================================================== */
+(function setupDrillDowns() {
+  const TX = D.transactions;
+  if (!TX || !TX.ts || !TX.ex) return;
+
+  // Stable PID -> tx_pid_index map so we can filter rows by the PID strings
+  // used elsewhere in the dashboard (the data-pid attribute, side list, etc.)
+  const txPidToI = {};
+  (TX.pid_list || []).forEach((p, i) => { txPidToI[p] = i; });
+
+  // Resolve the "Overhead Global" PID once so we can strip those rows from
+  // every drill (matches the dashboard-wide scrub).
+  let ogIdx = -1;
+  (TX.pid_list || []).forEach((p, i) => {
+    if (window.DASH_DATA && window.DASH_DATA.pid_lookup && /overhead\s+global/i.test((window.DASH_DATA.pid_lookup[p] || {}).n || '')) ogIdx = i;
+  });
+
+  // Currently-displayed PID -> project name lookup (rebuilt from the
+  // current data file, not the transaction-side pid_list, so the display
+  // matches the rest of the dashboard).
+  const nameByPid = {};
+  function ingestName(arr) {
+    (arr || []).forEach(r => { if (r && r.pid && r.name) nameByPid[r.pid] = nameByPid[r.pid] || r.name; });
+  }
+  ingestName(D.largest_expenses_ytd_by_project);
+  ingestName(D.top_billable_by_project_ytd);
+  ingestName(D.top_hours_by_project_this_month);
+  ingestName(D.hours_by_project_employee_ytd);
+  ingestName(D.expenses_by_project_employee_ytd);
+  ingestName(D.expenses_by_project_category_ytd);
+  (D.phases_ytd || []).forEach(g => (g.projects || []).forEach(p => { if (p.pid && p.name) nameByPid[p.pid] = nameByPid[p.pid] || p.name; }));
+  (D.categories_ytd || []).forEach(g => (g.projects || []).forEach(p => { if (p.pid && p.name) nameByPid[p.pid] = nameByPid[p.pid] || p.name; }));
+
+  const pmByPid = {};
+  function ingestPm(arr) {
+    (arr || []).forEach(r => { if (r && r.pid && r.pm) pmByPid[r.pid] = pmByPid[r.pid] || r.pm; });
+  }
+  ingestPm(D.largest_expenses_ytd_by_project);
+  ingestPm(D.top_billable_by_project_ytd);
+  ingestPm(D.hours_by_project_employee_ytd);
+  ingestPm(D.expenses_by_project_employee_ytd);
+
+  // Category bucketing — mirrors Python's category_of() in
+  // regenerate_pm_hours_data.py. The "Expenses by Project and Category"
+  // table displays bucketed category names (Travel, Lodging, Per Diem,
+  // Other, …) but TX.cat_list holds the raw source strings (e.g.
+  // "Hotel - Red Rock", "Domestic Travel"). When we drill from that table
+  // we need to match on the bucket, not the raw string.
+  function catBucketOf(name) {
+    const cl = (name || '').toLowerCase();
+    if (!cl) return 'Uncategorized';
+    if (cl.includes('per diem')) return 'Per Diem';
+    if (cl.includes('hotel') || cl.includes('lodging')) return 'Lodging';
+    if (cl.includes('mileage')) return 'Mileage';
+    if (cl.includes('travel')) return 'Travel';
+    if (cl.includes('meal')) return 'Meals';
+    if (cl.includes('materials') || cl.includes('supplies')) return 'Materials & Supplies';
+    if (cl.includes('permit') || cl.includes('registration')) return 'Permits & Reg.';
+    if (cl.includes('consulting')) return 'Consulting';
+    if (cl.includes('postage') || cl.includes('delivery')) return 'Postage & Delivery';
+    if (cl.includes('software')) return 'Software';
+    if (cl.includes('telephone') || cl.includes('internet')) return 'Telecom';
+    if (cl.includes('rent')) return 'Rent';
+    if (cl.includes('marketing')) return 'Marketing';
+    if (cl.includes('dues') || cl.includes('subscription')) return 'Dues & Subs.';
+    if (cl.includes('conference') || cl.includes('event')) return 'Conferences';
+    return 'Other';
+  }
+  // Pre-compute bucket per raw cat_list index — exFilter is hot, no per-row work.
+  const catBucketByI = (TX.cat_list || []).map(catBucketOf);
+
+  // Month filter — current period state, asked at drill time.
+  function periodIsMonth() { return (window.getPeriod && window.getPeriod()) === 'month'; }
+  function inPeriod(mmdd) {
+    if (!periodIsMonth()) return true;
+    return mmdd.slice(0, 2) === PERIOD.mm;   // current month only
+  }
+
+  // Decode a timesheet row to a flat object for display.
+  function decodeTs(r) {
+    return {
+      pid:   TX.pid_list[r[0]],
+      emp:   r[1] >= 0 ? TX.emp_list[r[1]]  : '',
+      task:  r[2] >= 0 ? TX.task_list[r[2]] : '',
+      dd:    r[3],
+      hrs:   r[4],
+      util:  r[5],
+    };
+  }
+  function decodeEx(r) {
+    return {
+      pid:   TX.pid_list[r[0]],
+      emp:   r[1] >= 0 ? TX.emp_list[r[1]] : '',
+      cat:   r[2] >= 0 ? TX.cat_list[r[2]] : '',
+      dd:    r[3],
+      amt:   r[4],
+    };
+  }
+  function fmtDate(dd) {
+    // "0115" -> "Jan 15"
+    const m = parseInt(dd.slice(0,2),10), d = parseInt(dd.slice(2,4),10);
+    const months = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return (months[m]||'') + ' ' + d;
+  }
+
+  // Build a filter predicate from a criteria object. Predicates run against
+  // the raw compact row to skip decode work when an entry doesn't match.
+  function tsFilter(c) {
+    const pidI = c.pid ? txPidToI[c.pid] : null;
+    const empI = c.emp ? TX.emp_list.indexOf(c.emp) : null;
+    const taskI = c.task ? TX.task_list.indexOf(c.task) : null;
+    return r =>
+      (pidI === null  || r[0] === pidI) &&
+      (empI === null  || r[1] === empI) &&
+      (taskI === null || r[2] === taskI) &&
+      (ogIdx < 0      || r[0] !== ogIdx) &&
+      inPeriod(r[3]);
+  }
+  function exFilter(c) {
+    const pidI = c.pid ? txPidToI[c.pid] : null;
+    const empI = c.emp ? TX.emp_list.indexOf(c.emp) : null;
+    // c.cat is a bucket name (e.g. "Travel") from the category table — match
+    // against the precomputed bucket of each row's raw category, not the raw
+    // string itself, since the raw cat_list strings never equal a bucket name.
+    const catBucket = c.cat || null;
+    return r =>
+      (pidI === null     || r[0] === pidI) &&
+      (empI === null     || r[1] === empI) &&
+      (catBucket === null || (r[2] >= 0 && catBucketByI[r[2]] === catBucket)) &&
+      (ogIdx < 0         || r[0] !== ogIdx) &&
+      inPeriod(r[3]);
+  }
+
+  // Apply any active PM filter — converts to a set of allowed PIDs for that PM
+  function activePmPids() {
+    const pm = window.getFilterPm && window.getFilterPm();
+    if (!pm) return null;
+    const allowed = new Set();
+    Object.entries(pmByPid).forEach(([pid, p]) => { if (p === pm) allowed.add(pid); });
+    return allowed;
+  }
+  function activeFilters() {
+    return {
+      pm:     (window.getFilterPm  && window.getFilterPm())  || '',
+      pid:    (window.getFilterPid && window.getFilterPid()) || '',
+      period: (window.getPeriod    && window.getPeriod())    || 'ytd',
+    };
+  }
+
+  // Core drill renderer — builds a modal with title + subtitle + total +
+  // scrolling transaction list.
+  function showDrill(opts) {
+    // opts: { title, subtitle, rows: [{date, who, what, value}], valueLabel, isMoney, total }
+    let modal = document.getElementById('txDrillModal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'txDrillModal';
+      modal.className = 'drill-modal';
+      modal.innerHTML = `
+        <div class="drill-card" style="max-width: 900px;">
+          <button class="drill-close" type="button" aria-label="Close">×</button>
+          <div class="drill-title"></div>
+          <div class="drill-sub"  style="font-size:11px; color: var(--ink-soft); margin-bottom: 4px;"></div>
+          <div class="drill-total"></div>
+          <div class="drill-meta" style="font-size:10px; color: var(--ink-dim); margin-bottom: 8px;"></div>
+          <div style="max-height: 60vh; overflow: auto; border: 1px solid var(--card-border); border-radius: 6px;">
+            <table class="dx" style="font-size: 11px;">
+              <thead><tr>
+                <th style="width: 80px;">Date</th>
+                <th style="width: 30%;">Employee</th>
+                <th>Description</th>
+                <th style="width: 110px;">Value</th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>`;
+      document.body.appendChild(modal);
+      modal.addEventListener('click', e => { if (e.target === modal) modal.hidden = true; });
+      modal.querySelector('.drill-close').addEventListener('click', () => { modal.hidden = true; });
+      document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && !modal.hidden) modal.hidden = true;
+      });
+    }
+    modal.querySelector('.drill-title').textContent = opts.title;
+    modal.querySelector('.drill-sub').textContent   = opts.subtitle || '';
+    modal.querySelector('.drill-total').textContent =
+      'Total: ' + (opts.isMoney ? '$ ' + Math.round(opts.total).toLocaleString() : Math.round(opts.total).toLocaleString() + ' hr');
+    modal.querySelector('.drill-meta').textContent =
+      opts.rows.length.toLocaleString() + ' entries — sorted by date';
+    const tbody = modal.querySelector('tbody');
+    tbody.innerHTML = '';
+    opts.rows.forEach(r => {
+      const tr = document.createElement('tr');
+      const v = opts.isMoney
+        ? '$ ' + Math.round(r.value).toLocaleString()
+        : Math.round(r.value).toLocaleString() + ' hr';
+      tr.innerHTML = `
+        <td>${fmtDate(r.date)}</td>
+        <td>${r.who || '<span class="muted">—</span>'}</td>
+        <td style="white-space: normal; overflow: hidden; text-overflow: ellipsis;">${r.what || '<span class="muted">—</span>'}</td>
+        <td class="num">${v}</td>`;
+      tbody.appendChild(tr);
+    });
+    modal.hidden = false;
+  }
+
+  // ---- Drill builders --------------------------------------------------
+
+  // Pull every timesheet TX matching active filter + extra criteria.
+  function collectTs(extra) {
+    const f = activeFilters();
+    const pmPids = activePmPids();
+    const pred = tsFilter({ pid: extra.pid || f.pid, emp: extra.emp, task: extra.task });
+    const out = [];
+    for (const r of TX.ts) {
+      if (!pred(r)) continue;
+      if (pmPids && !pmPids.has(TX.pid_list[r[0]])) continue;
+      out.push(decodeTs(r));
+    }
+    out.sort((a, b) => a.dd.localeCompare(b.dd));
+    return out;
+  }
+  function collectEx(extra) {
+    const f = activeFilters();
+    const pmPids = activePmPids();
+    const pred = exFilter({ pid: extra.pid || f.pid, emp: extra.emp, cat: extra.cat });
+    const out = [];
+    for (const r of TX.ex) {
+      if (!pred(r)) continue;
+      if (pmPids && !pmPids.has(TX.pid_list[r[0]])) continue;
+      out.push(decodeEx(r));
+    }
+    out.sort((a, b) => a.dd.localeCompare(b.dd));
+    return out;
+  }
+  function periodLabel() {
+    return periodIsMonth() ? PERIOD.sumMonth : 'Year to Date';
+  }
+  function filterDescription(extra) {
+    const f = activeFilters();
+    const parts = [periodLabel()];
+    if (f.pm)  parts.push('PM: ' + f.pm);
+    if (extra.pid || f.pid) {
+      const pid = extra.pid || f.pid;
+      parts.push('Project: ' + (nameByPid[pid] || pid));
+    }
+    if (extra.emp) parts.push('Employee: ' + extra.emp);
+    if (extra.cat) parts.push('Category: ' + extra.cat);
+    return parts.join(' • ');
+  }
+
+  // ---- KPI click handlers ---------------------------------------------
+  function drillHours() {
+    const rows = collectTs({}).map(r => ({
+      date: r.dd, who: r.emp, what: r.task, value: r.hrs
+    }));
+    const total = rows.reduce((s, r) => s + (r.value||0), 0);
+    showDrill({ title: 'PM Hours', subtitle: filterDescription({}), rows, isMoney: false, total });
+  }
+  function drillBillable() {
+    const rows = collectTs({}).map(r => ({
+      date: r.dd, who: r.emp, what: r.task, value: r.util
+    })).filter(r => r.value !== 0);
+    const total = rows.reduce((s, r) => s + (r.value||0), 0);
+    showDrill({ title: 'Billable Hours', subtitle: filterDescription({}), rows, isMoney: false, total });
+  }
+  function drillExpenses() {
+    const rows = collectEx({}).map(r => ({
+      date: r.dd, who: r.emp, what: r.cat, value: r.amt
+    }));
+    const total = rows.reduce((s, r) => s + (r.value||0), 0);
+    showDrill({ title: 'Field Expenses', subtitle: filterDescription({}), rows, isMoney: true, total });
+  }
+
+  // Attach click handlers to the 4 KPI cells. Cursor cue via inline style.
+  ['hoursBig','billBig','expBig','totExpBig'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.cursor = 'pointer';
+    el.title = 'Click to see contributing entries';
+  });
+  document.getElementById('hoursBig') ?.addEventListener('click', drillHours);
+  document.getElementById('billBig')  ?.addEventListener('click', drillBillable);
+  document.getElementById('expBig')   ?.addEventListener('click', drillExpenses);
+  document.getElementById('totExpBig')?.addEventListener('click', drillExpenses);
+
+  // ---- Banner row + sub-row click handlers ----------------------------
+  // We use event delegation on each pivot table's tbody so handlers stay
+  // attached when the table re-populates on period/filter changes.
+  function drillProjectExpenses(pid, extra = {}) {
+    const rows = collectEx({ pid, ...extra }).map(r => ({
+      date: r.dd, who: r.emp, what: r.cat, value: r.amt
+    }));
+    const total = rows.reduce((s, r) => s + (r.value||0), 0);
+    showDrill({
+      title: nameByPid[pid] || pid,
+      subtitle: filterDescription({ pid, ...extra }),
+      rows, isMoney: true, total
+    });
+  }
+  function drillProjectHours(pid, extra = {}) {
+    const rows = collectTs({ pid, ...extra }).map(r => ({
+      date: r.dd, who: r.emp, what: r.task, value: r.hrs
+    }));
+    const total = rows.reduce((s, r) => s + (r.value||0), 0);
+    showDrill({
+      title: nameByPid[pid] || pid,
+      subtitle: filterDescription({ pid, ...extra }),
+      rows, isMoney: false, total
+    });
+  }
+
+  function attachTableDrills() {
+    // Banner total -> drill the project. Sub-row -> drill the project +
+    // employee (or + category). Banner row click already toggles expand,
+    // so we only fire the drill from the banner-total span (right side).
+    document.querySelectorAll('#hoursByProjTable, #expByEmpTable, #expByProjCatTable').forEach(table => {
+      const isHours = table.id === 'hoursByProjTable';
+      const isCat   = table.id === 'expByProjCatTable';
+      // Banner total click
+      table.addEventListener('click', e => {
+        const totalSpan = e.target.closest('.banner-total');
+        if (totalSpan) {
+          e.stopPropagation();
+          const hdr = totalSpan.closest('tr.proj-header');
+          if (!hdr) return;
+          const pid = hdr.dataset.pid;
+          if (!pid) return;
+          if (isHours) drillProjectHours(pid);
+          else         drillProjectExpenses(pid);
+          return;
+        }
+        // Sub-row value click
+        const subTd = e.target.closest('tr.sub-row td.num');
+        if (subTd) {
+          const tr = subTd.parentElement;
+          const pid = tr.dataset.pid;
+          if (!pid) return;
+          const firstCell = tr.querySelector('td:first-child');
+          const label = firstCell ? firstCell.textContent.trim() : '';
+          if (!label) return;
+          if (isCat) {
+            drillProjectExpenses(pid, { cat: label });
+          } else if (isHours) {
+            drillProjectHours(pid, { emp: label });
+          } else {
+            drillProjectExpenses(pid, { emp: label });
+          }
+        }
+      });
+    });
+  }
+  attachTableDrills();
+
+  // ---- Side list "Largest Expenses YTD" -------------------------------
+  document.getElementById('ytdTable')?.addEventListener('click', e => {
+    const tr = e.target.closest('tbody tr');
+    if (!tr) return;
+    const pid = tr.dataset.pid;
+    if (pid) drillProjectExpenses(pid);
+  });
+
+  // ---- Visual affordance: cursor on every clickable surface -----------
+  const style = document.createElement('style');
+  style.textContent = `
+    #hoursBig, #billBig, #expBig, #totExpBig,
+    table.dx tr.proj-header .banner-total,
+    table.dx tr.sub-row td.num,
+    #ytdTable tbody tr { cursor: pointer; }
+    table.dx tr.proj-header .banner-total:hover { text-decoration: underline; }
+    table.dx tr.sub-row td.num:hover { text-decoration: underline; }
+    #ytdTable tbody tr:hover td { background: rgba(180,184,194,.10); }
+  `;
+  document.head.appendChild(style);
+})();
+</script>
+
+</body>
+</html>

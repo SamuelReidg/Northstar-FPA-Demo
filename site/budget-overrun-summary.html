@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Budget Watchtower — Northstar Heritage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F7F5F0; --paper:#FCFBF7; --forest:#264D3D; --forest-soft:#2F5C49;
+  --sage:#9AAE9A; --sage-tint:#E7EBE3; --brass:#B08D57; --terra:#B65E4A;
+  --ink:#2D2D2D; --muted:#7C7A72; --hair:#ECE8DE;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--ink);
+  font-family:"Inter","Helvetica Neue",Helvetica,Arial,sans-serif;
+  font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+#fitviewport{height:100vh;width:100vw;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#fit{transform-origin:center center;will-change:transform}
+.serif{font-family:"Cormorant Garamond",Georgia,"Times New Roman",serif}
+.num{font-variant-numeric:tabular-nums}
+a.back{display:inline-flex;gap:7px;align-items:center;color:var(--muted);
+  text-decoration:none;font-size:12px;letter-spacing:.04em;margin:0 0 0 40px}
+a.back:hover{color:var(--forest)}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 40px 0 0}
+a.xbtn{display:inline-flex;gap:7px;align-items:center;text-decoration:none;cursor:pointer;
+  background:var(--paper);color:var(--forest);border:1px solid var(--hair);border-radius:999px;
+  padding:6px 15px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;
+  box-shadow:0 1px 2px rgba(38,77,61,.04);transition:background .15s,border-color .15s,color .15s}
+a.xbtn:hover{background:var(--forest);border-color:var(--forest);color:#fff}
+a.xbtn:hover svg{stroke:#fff}
+a.xbtn svg{width:13px;height:13px;fill:none;stroke:var(--brass);stroke-width:1.8;
+  stroke-linecap:round;stroke-linejoin:round;transition:stroke .15s}
+.xtoast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(8px);
+  background:var(--forest);color:#fff;padding:10px 18px;border-radius:999px;font-size:12px;
+  letter-spacing:.03em;box-shadow:0 12px 30px rgba(38,77,61,.30);opacity:0;visibility:hidden;
+  transition:opacity .18s,transform .18s;z-index:60}
+.xtoast.show{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
+.wrap{max-width:1560px;margin:0 auto;padding:4px 40px 10px}
+.zone{margin:0 0 18px}
+.ztag{display:flex;align-items:baseline;gap:12px;margin:0 0 12px}
+.ztag .no{font-family:"Cormorant Garamond",serif;font-size:14px;color:var(--brass);font-weight:600;letter-spacing:.12em}
+.ztag h2{margin:0;font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--forest);font-weight:600}
+.ztag .rule{flex:1;height:1px;background:var(--hair)}
+.rankhint{font-size:10px;color:var(--muted);letter-spacing:.04em;white-space:nowrap}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.topgrid{display:grid;grid-template-columns:1.15fr repeat(4,1fr);gap:16px;align-items:stretch}
+.titleblock{display:flex;flex-direction:column;justify-content:center;gap:8px;padding:2px 4px}
+.titleblock .eyebrow{color:var(--brass);font-size:10px;letter-spacing:.32em;font-weight:600;text-transform:uppercase}
+.titleblock h1{font-weight:600;color:var(--forest);font-size:34px;line-height:.98;margin:0;letter-spacing:-.01em}
+.kpi{background:var(--paper);border-radius:14px;padding:16px 18px;
+  box-shadow:0 1px 2px rgba(38,77,61,.04),0 10px 26px rgba(38,77,61,.05);
+  display:flex;flex-direction:column;gap:7px}
+.kpi .ico{width:20px;height:20px;stroke:var(--sage);fill:none;stroke-width:1.6}
+.kpi .v{font-family:"Cormorant Garamond",serif;font-weight:600;font-size:34px;line-height:.9;color:var(--forest)}
+.kpi .v.neg{color:var(--terra)}
+.kpi .l{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.kpi .s{font-size:11.5px;color:var(--muted);line-height:1.35;margin-top:-2px}
+.kpi .up{color:var(--terra)} .kpi .down{color:var(--forest-soft)}
+.kpi.ring{align-items:center;text-align:center;justify-content:space-between;gap:4px}
+.gauge{width:92px;height:92px;margin:0}
+.g-track{fill:none;stroke:var(--sage-tint);stroke-width:9}
+.g-val{fill:none;stroke:var(--brass);stroke-width:9;stroke-linecap:round}
+.g-num{font-family:"Cormorant Garamond",serif;font-size:30px;fill:var(--forest);text-anchor:middle;font-weight:600}
+.g-cap{font-size:7px;fill:var(--muted);text-anchor:middle;letter-spacing:.22em;font-weight:600}
+.narr{display:grid;grid-template-columns:1fr 1fr 2fr;gap:16px}
+.lscompliance{margin-top:14px;padding-top:14px;border-top:1px solid var(--hair)}
+.lstitle{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--forest);font-weight:700;margin-bottom:12px}
+.lscompliance .bar{max-width:470px}
+.ncard{background:var(--paper);border-radius:14px;padding:18px 22px;
+  box-shadow:0 1px 2px rgba(38,77,61,.04),0 10px 26px rgba(38,77,61,.05)}
+.ncard .hd{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.ncard .hd .dotlbl{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--forest);font-weight:700}
+.tip{position:relative;cursor:help;border-bottom:1px dotted var(--sage)}
+.tipbox{position:absolute;left:0;top:calc(100% + 9px);width:300px;background:var(--forest);color:#fff;
+  padding:12px 14px;border-radius:10px;font-size:11.5px;line-height:1.55;letter-spacing:0;
+  text-transform:none;font-weight:400;box-shadow:0 12px 30px rgba(38,77,61,.30);
+  opacity:0;visibility:hidden;transform:translateY(-4px);transition:opacity .15s,transform .15s;z-index:30;pointer-events:none}
+.tipbox::before{content:"";position:absolute;left:22px;top:-6px;width:12px;height:12px;background:var(--forest);transform:rotate(45deg)}
+.tipbox b{display:block;margin-bottom:7px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--sage-tint);font-weight:700}
+.tipbox em{display:block;margin-top:7px;font-style:normal;color:var(--sage-tint);font-size:10.5px}
+.tip:hover .tipbox{opacity:1;visibility:visible;transform:translateY(0)}
+.ncard .hd .tgt{margin-left:auto;font-size:10.5px;color:var(--muted);letter-spacing:.04em}
+.lead{display:flex;align-items:flex-end;gap:16px;margin-bottom:4px}
+.lead .big{font-family:"Cormorant Garamond",serif;font-size:38px;font-weight:600;line-height:.85;color:var(--forest)}
+.lead .delta{font-size:12px;margin-bottom:5px}
+.lead .delta.dn{color:var(--forest-soft)} .lead .delta.up{color:var(--terra)} .lead .delta.flat{color:var(--muted)}
+.lead .cap{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;font-weight:600}
+.say{font-size:12.5px;line-height:1.5;color:#46453F;margin:10px 0 12px;max-width:46ch}
+.rsum{margin:14px 0 0;padding-left:16px;font-size:11.5px;line-height:1.45;color:#46453F}
+.rsum>li{margin:5px 0}
+.rsum b{color:var(--forest)}
+.rsum ul{margin:4px 0 0;padding-left:15px;list-style:circle}
+.rsum ul li{margin:3px 0;color:var(--muted);font-size:11px}
+.bar{margin:0 0 10px}
+.bar:last-child{margin-bottom:0}
+.bar .br{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.bar .br .pct{font-family:"Cormorant Garamond",serif;font-size:17px;color:var(--forest);font-weight:600}
+.bar .br .bl{font-size:9.5px;color:var(--muted);text-align:right;max-width:62%;line-height:1.25}
+.track{height:6px;border-radius:6px;background:var(--sage-tint);overflow:hidden}
+.fill{height:100%;border-radius:6px;background:var(--forest)}
+.rankgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:stretch}
+.rank{background:var(--paper);border-radius:14px;padding:6px 10px 4px;
+  box-shadow:0 1px 2px rgba(38,77,61,.04),0 10px 26px rgba(38,77,61,.05)}
+table{width:100%;border-collapse:collapse}
+thead th{font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);
+  font-weight:600;text-align:right;padding:4px 10px;border-bottom:1px solid var(--hair)}
+thead th:nth-child(1){text-align:left}
+tbody td{padding:3px 10px;border-bottom:1px solid var(--hair);font-size:12px}
+tbody tr:last-child td{border-bottom:none}
+.rankgrid tbody tr.clk{cursor:pointer}
+.rankgrid tbody tr.clk:hover{background:#F3F1E9}
+.pn{color:var(--ink);font-weight:500}
+td.n{text-align:right;font-variant-numeric:tabular-nums;color:#46453F;white-space:nowrap}
+td.n.over{color:var(--terra);font-weight:600}
+.ovl{position:fixed;inset:0;background:rgba(38,77,61,.45);display:none;align-items:center;justify-content:center;z-index:100;padding:24px}
+.ovl.show{display:flex}
+.modal{background:var(--paper);border-radius:16px;max-width:760px;width:100%;max-height:84vh;display:flex;flex-direction:column;box-shadow:0 30px 80px rgba(0,0,0,.32);overflow:hidden}
+.modal .mhd{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 26px 8px}
+.modal .mt{font-family:"Cormorant Garamond",serif;font-size:26px;color:var(--forest);font-weight:600;line-height:1.05}
+.modal .mcls{cursor:pointer;font-size:26px;color:var(--muted);line-height:1;flex:0 0 auto}
+.modal .mcls:hover{color:var(--forest)}
+.modal .msub{padding:0 26px 14px;color:var(--muted);font-size:12px;letter-spacing:.02em;border-bottom:1px solid var(--hair)}
+.mwrap{overflow:auto;padding:2px 14px 12px}
+.modal table{width:100%;border-collapse:collapse}
+.modal thead th{position:sticky;top:0;background:var(--paper);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);font-weight:600;text-align:right;padding:10px 14px;border-bottom:1px solid var(--hair)}
+.modal thead th:nth-child(1),.modal thead th:nth-child(2){text-align:left}
+.modal tbody td{padding:7px 14px;border-bottom:1px solid var(--hair);font-size:12px}
+.modal tbody tr:last-child td{border-bottom:none}
+.mrk{color:var(--muted);width:34px;font-family:"Cormorant Garamond",serif;font-size:13px}
+.mpn{color:var(--ink);max-width:340px}
+.mn{text-align:right;font-variant-numeric:tabular-nums;color:#46453F;white-space:nowrap}
+.mover{color:var(--terra);font-weight:600}
+.methrow{display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:16px;align-items:stretch}
+.ncard.meth{display:flex;gap:13px;align-items:flex-start}
+.mico{flex:0 0 26px;width:26px;height:26px;border-radius:50%;border:1px solid var(--brass);color:var(--brass);display:flex;align-items:center;justify-content:center;font-style:italic;font-weight:700;font-family:"Cormorant Garamond",serif;font-size:15px}
+.meth .mh,.mdef .mh{margin:0 0 6px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--forest);font-weight:700}
+.meth .mcode,.mdef .mcode{font-family:"Cormorant Garamond",Georgia,serif;font-size:13.5px;color:#46453F;line-height:1.55;display:block}
+.ncard.mdef{display:flex;flex-direction:column;justify-content:center}
+</style></head>
+<body>
+<div id="fitviewport"><div id="fit">
+<div class="topbar">
+  <a class="back" href="index.html">&larr; Back to hub</a>
+  <a class="xbtn" id="xbtn" href="budget-watchtower-workbook.xlsx" download="Northstar Heritage - Budget Watchtower 09-29-2026.xlsx"
+     title="Download the full Budget Watchtower workbook — All Active Projects, &gt;70% Exec View, &gt;70%, 90% &amp; &gt;$50k, 100% Rev Rec FF and Weighted Overrun Calculation">
+    <svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="M7.5 10.5L12 15l4.5-4.5"/><path d="M4 20h16"/></svg>
+    Export to Excel
+  </a>
+</div>
+<div class="wrap">
+
+  <section class="zone">
+    <div class="topgrid">
+
+      <div class="titleblock">
+        <div class="eyebrow">Northstar Heritage &middot; PMO Performance</div>
+        <h1 class="serif">Budget Watchtower</h1>
+      </div>
+
+      <div class="kpi">
+        <svg class="ico" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.4"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.4"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.4"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.4"/></svg>
+        <div class="v num">858</div>
+        <div class="l">Active Projects</div>
+        <div class="s">Projects with an original budget</div>
+      </div>
+
+      <div class="kpi ring">
+        <div class="l">Weighted Overrun</div>
+        <svg viewBox="0 0 130 130" class="gauge">
+          <circle cx="65" cy="65" r="52" class="g-track"/>
+          <circle cx="65" cy="65" r="52" class="g-val" stroke-dasharray="326.7" stroke-dashoffset="267.0" transform="rotate(135 65 65)"/>
+          <text x="65" y="63" class="g-num">1.83%</text>
+          <text x="65" y="80" class="g-cap">VS &le;5% TARGET</text>
+        </svg>
+      </div>
+
+      <div class="kpi">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <div class="v num">$126.42M</div>
+        <div class="l">Total Original Budget</div>
+        <div class="s">Across all PMOs</div>
+      </div>
+
+      <div class="kpi">
+        <svg class="ico" viewBox="0 0 24 24" style="stroke:var(--terra)"><path d="M23 18l-9.5-9.5-5 5L1 6"/><path d="M17 18h6v-6"/></svg>
+        <div class="v num neg">($2.31M)</div>
+        <div class="l">Total Overrun Amount</div>
+        <div class="s">Costs above original budget</div>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="zone">
+    <div class="ztag"><span class="no serif">01</span><h2>Executive Summary</h2><span class="rule"></span></div>
+    <div class="narr">
+
+      <div class="ncard">
+        <div class="hd"><span class="dotlbl tip">Original Cost Budget<span class="tipbox"><b>Original Budget &mdash; Weighted Overrun %</b>( Total Costs &minus; Original Budget ) &divide; Sum of all Original Budgets &times; 100</span></span></div>
+        <div class="lead">
+          <div><div class="cap">Weighted Overrun</div><div class="big serif">1.83%</div></div>
+          <div class="delta up">&uarr; from 1.79% last week</div>
+        </div>
+        <p class="say">Across <b>858</b> active projects carrying an original budget, <b>18.2%</b> are in overrun. Weighted overrun on original budgets sits at <b>1.83%</b> against the 5% target.</p>
+      </div>
+
+      <div class="ncard">
+        <div class="hd"><span class="dotlbl">Late-Stage Compliance</span></div>
+        <div class="bar">
+          <div class="br"><span class="pct num">18%</span><span class="bl">100% rev. rec. projects with ETCs &middot; target 100%</span></div>
+          <div class="track"><div class="fill" style="width:18%"></div></div>
+        </div>
+        <div class="bar">
+          <div class="br"><span class="pct num">41%</span><span class="bl">90% rev. rec. projects with ETCs &middot; target 100%</span></div>
+          <div class="track"><div class="fill" style="width:41%"></div></div>
+        </div>
+        <div class="bar">
+          <div class="br"><span class="pct num">73%</span><span class="bl">70% rev. rec. projects with ETCs &middot; target 100%</span></div>
+          <div class="track"><div class="fill" style="width:73%"></div></div>
+        </div>
+      </div>
+
+      <div class="ncard">
+        <div class="hd"><span class="dotlbl tip">Revised (ETC) Budget<span class="tipbox"><b>Revised ETC &mdash; Weighted Overrun %</b>( Total Costs &minus; Total Revised Budget ) &divide; Sum of all Revised Budgets &times; 100<em>Total Revised Budget = Original Budget + Budget Adjustments / ETC.</em></span></span></div>
+        <div class="lead">
+          <div><div class="cap">Weighted Overrun</div><div class="big serif">1.39%</div></div>
+          <div class="delta up">&uarr; from 1.37% last week</div>
+        </div>
+        <ul class="rsum">
+          <li><b>273</b> projects with over 70% of budget spent (additional filters summarized in the report), up from 271 last week.</li>
+          <li><b>105</b> projects with over 90% of budget spent and contract values greater than $50K, up from 103 last week.</li>
+          <li><b>79</b> active fixed-fee projects with 100% revenue recognition, up from 78 last week.</li>
+          <li>Of the late-stage projects:
+            <ul>
+              <li><b>18%</b> of projects with 100%+ revenue recognition have ETCs or are on-budget (target 100%).</li>
+              <li><b>41%</b> of projects with 90% revenue recognition have ETCs or are on-budget (target 100%).</li>
+              <li><b>73%</b> of projects with 70% revenue recognition have ETCs or are on-budget (target 100%).</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="zone">
+    <div class="ztag"><span class="no serif">02</span><h2>PMO Performance Ranking</h2><span class="rule"></span><span class="rankhint">click a PMO for its project buildup</span></div>
+    <div class="rankgrid">
+
+      <div class="rank">
+        <table>
+          <thead><tr><th>PMO</th><th>Budget</th><th>Overrun</th><th>Overrun&nbsp;%</th></tr></thead>
+          <tbody>
+<tr><td class="pn">Cascade</td><td class="n">$6,690,921</td><td class="n">($357,058)</td><td class="n over">5.34%</td></tr>
+<tr><td class="pn">Meridian Central</td><td class="n">$4,312,802</td><td class="n">($242,140)</td><td class="n over">5.61%</td></tr>
+<tr><td class="pn">Red Rock</td><td class="n">$10,471,209</td><td class="n">($227,007)</td><td class="n over">2.17%</td></tr>
+<tr><td class="pn">Chesapeake</td><td class="n">$7,460,994</td><td class="n">($173,750)</td><td class="n over">2.33%</td></tr>
+<tr><td class="pn">Sierra</td><td class="n">$9,179,959</td><td class="n">($162,767)</td><td class="n over">1.77%</td></tr>
+<tr><td class="pn">Coastal Bend</td><td class="n">$8,292,813</td><td class="n">($151,315)</td><td class="n over">1.82%</td></tr>
+<tr><td class="pn">Great Lakes</td><td class="n">$8,093,172</td><td class="n">($140,475)</td><td class="n over">1.74%</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="rank">
+        <table>
+          <thead><tr><th>PMO</th><th>Budget</th><th>Overrun</th><th>Overrun&nbsp;%</th></tr></thead>
+          <tbody>
+<tr><td class="pn">International</td><td class="n">$4,812,704</td><td class="n">($134,890)</td><td class="n over">2.80%</td></tr>
+<tr><td class="pn">Hill Country</td><td class="n">$5,840,960</td><td class="n">($121,110)</td><td class="n over">2.07%</td></tr>
+<tr><td class="pn">Gulf Coast</td><td class="n">$3,973,803</td><td class="n">($102,356)</td><td class="n over">2.58%</td></tr>
+<tr><td class="pn">High Desert</td><td class="n">$4,721,652</td><td class="n">($76,079)</td><td class="n over">1.61%</td></tr>
+<tr><td class="pn">Lakeshore</td><td class="n">$1,464,179</td><td class="n">($75,522)</td><td class="n over">5.16%</td></tr>
+<tr><td class="pn">Piedmont</td><td class="n">$3,736,000</td><td class="n">($64,772)</td><td class="n over">1.73%</td></tr>
+<tr><td class="pn">Front Range</td><td class="n">$8,199,299</td><td class="n">($60,925)</td><td class="n over">0.74%</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="rank">
+        <table>
+          <thead><tr><th>PMO</th><th>Budget</th><th>Overrun</th><th>Overrun&nbsp;%</th></tr></thead>
+          <tbody>
+<tr><td class="pn">Big Sky</td><td class="n">$4,833,255</td><td class="n">($54,655)</td><td class="n over">1.13%</td></tr>
+<tr><td class="pn">Island</td><td class="n">$3,854,948</td><td class="n">($46,377)</td><td class="n over">1.20%</td></tr>
+<tr><td class="pn">Bluegrass</td><td class="n">$2,834,619</td><td class="n">($41,570)</td><td class="n over">1.47%</td></tr>
+<tr><td class="pn">Meridian Southwest</td><td class="n">$2,587,493</td><td class="n">($40,401)</td><td class="n over">1.56%</td></tr>
+<tr><td class="pn">Geospatial</td><td class="n">$5,443,779</td><td class="n">($25,143)</td><td class="n over">0.46%</td></tr>
+<tr><td class="pn">Built Environment</td><td class="n">$7,127,886</td><td class="n">($7,799)</td><td class="n over">0.11%</td></tr>
+<tr><td class="pn">Paleontology</td><td class="n">$4,606,294</td><td class="n">($3,768)</td><td class="n over">0.08%</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="zone" style="margin-bottom:0">
+    <div class="ztag"><span class="no serif">03</span><h2>Methodology</h2><span class="rule"></span></div>
+    <div class="methrow">
+
+      <div class="ncard meth">
+        <span class="mico">i</span>
+        <div>
+          <div class="mh">Original Budget &mdash; Weighted Overrun %</div>
+          <code class="mcode">Weighted Overrun % = ( (Total Costs &minus; Original Budget) &divide; Sum of All Original Budgets ) &times; 100</code>
+        </div>
+      </div>
+
+      <div class="ncard meth">
+        <span class="mico">i</span>
+        <div>
+          <div class="mh">Revised ETC &mdash; Weighted Overrun %</div>
+          <code class="mcode">Weighted Overrun % = ( (Total Costs &minus; (Original Budget + Budget Adjustments/ETC, i.e. Total Revised Budgets)) &divide; Sum of All Revised Budgets ) &times; 100</code>
+        </div>
+      </div>
+
+      <div class="ncard mdef">
+        <div class="mh">Total Revised Budget</div>
+        <code class="mcode">Original Budget + Budget Adjustments / ETC</code>
+      </div>
+
+    </div>
+  </section>
+
+</div>
+</div></div>
+<div id="ovl" class="ovl">
+  <div class="modal">
+    <div class="mhd"><span id="mttl" class="mt"></span><span id="mcls" class="mcls">&times;</span></div>
+    <div id="msub" class="msub"></div>
+    <div class="mwrap">
+      <table>
+        <thead><tr><th>#</th><th>Project</th><th>Original Budget</th><th>Total Cost</th><th>Overrun</th></tr></thead>
+        <tbody id="mrows"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<div id="xtoast" class="xtoast"></div>
+
+<script>
+(function(){
+  var fit = document.getElementById('fit');
+  function apply(){
+    fit.style.transform = 'none';
+    var w = fit.offsetWidth, h = fit.offsetHeight;
+    if(!w || !h) return;
+    var pad = 16;
+    var s = Math.min((window.innerWidth - pad) / w, (window.innerHeight - pad) / h);
+    if(s > 1) s = 1;
+    fit.style.transform = 'scale(' + s + ')';
+  }
+  window.addEventListener('resize', apply);
+  window.addEventListener('load', apply);
+  if(document.fonts && document.fonts.ready){ document.fonts.ready.then(apply); }
+  apply();
+})();
+</script>
+<script>
+var DETAIL={"Bluegrass":[["Sea Oat Cultural Resources Assessment",35871,56417,20546],["Phase II: Riverbend Cell Tower Built Environment Survey",166412,174373,7961],["Kestrel Butte Maritime Remote Sensing Survey",45577,50597,5020],["Saltgrass Cell Tower Built Environment Survey",85464,90184,4720],["Dove Canyon Mixed-Use Development Archaeological Testing",58650,61318,2668],["Phase II: Foxglove Harbor Dredging Data Recovery",13028,13684,656]],"Cascade":[["Dove Canyon Archaeological Testing",358003,466250,108247],["Riverbend GIS Mapping",109484,162892,53408],["Task Order 37: Sea Oat Water Main Archaeological Testing",71377,112759,41382],["Juniper Wash Canal Lining Environmental Review Support",168225,202903,34678],["Quail Run Archaeological Testing",53043,76341,23298],["Blue Heron Environmental Review Support",45712,64096,18384],["On-Call: Badger Hollow Pipeline Archaeological Testing",171337,185664,14327],["Sandpiper Park Improvements Phase I Survey",38782,51500,12719],["On-Call: Foxglove Fiber Route GIS Mapping",22049,34568,12519],["North Fork Wind Farm Curation",87825,98773,10948],["Phase III: Timber Gap Mixed-Use Development GIS Mapping",65640,73270,7630],["Phase I: Kestrel Butte Substation Data Recovery",17263,22123,4860],["Task Order 27: Hawk Point Pipeline Data Recovery",28728,33003,4274],["Task Order 11: Kestrel Butte Mine Expansion Cultural Resources Monitoring",11810,15532,3721],["Millbrook Environmental Review Support",145727,149340,3614],["Rushgrass Draw Paleontological Monitoring",28780,31541,2761],["Task Order 33: Tamarack Housing Development Data Recovery",2427,2715,288]],"Chesapeake":[["Oak Terrace Canal Lining - Phase I Survey",85013,117592,32578],["Sea Oat Airport Apron Phase II Testing",93288,122245,28958],["Task Order 14: Hawk Point Harbor Dredging Maritime Remote Sensing Survey",36731,59531,22799],["Timber Gap Highway Widening Paleontological Monitoring",9523,31104,21581],["Pebble Beach Road Archaeological Testing",55626,76703,21077],["Sandpiper Canal Lining - Phase I Survey",24482,39794,15313],["On-Call: Granite Pass Substation Cultural Resources Monitoring",70199,85362,15163],["Hackberry Bend Canal Lining Data Recovery",150874,161800,10926],["Rushgrass Draw Curation",24645,27324,2679],["Saltgrass Wastewater Plant - Phase I Survey",7230,8880,1650],["Badger Hollow Harbor Dredging Architectural History Survey",21303,22329,1026]],"Front Range":[["Lone Pine Mixed-Use Development Phase I Survey",51399,74824,23425],["Yarrow Point Architectural History Survey",31695,49895,18201],["Twin Buttes Wind Farm - Cultural Resources Monitoring",6386,16463,10077],["Redbud Data Recovery",2324,9006,6682],["Phase III: Yarrow Point Reservoir Archaeological Testing",15245,16552,1307],["North Fork Water Main Architectural History Survey",11651,12885,1234]],"Island":[["Kestrel Butte Environmental Review Support",30447,49336,18889],["Task Order 2: Larkspur Substation Historic Resources Evaluation",25871,34278,8407],["Lone Pine Architectural History Survey",89657,97024,7367],["Larkspur Highway Widening Cultural Resources Assessment",53089,60185,7096],["Hawk Point Phase I Survey",32791,37410,4619]],"Red Rock":[["Kestrel Butte Phase I Survey",77501,119866,42365],["Phase II: Windmill Flat Wind Farm Built Environment Survey",36552,75197,38645],["Phase I: Dove Canyon Battery Storage Class III Survey",72685,103671,30986],["On-Call: Sparrow Hill Solar Section 106 Consultation",41637,60770,19133],["Juniper Wash Built Environment Survey",56579,73552,16974],["Pebble Beach Road Wind Farm Historic Resources Evaluation",60828,76642,15814],["Kestrel Butte Mine Expansion Cultural Resources Assessment",86531,99695,13164],["Phase I: Windmill Flat Battery Storage Archaeological Testing",5867,18018,12151],["Juniper Wash Pipeline - Archaeological Testing",20462,29634,9171],["Task Order 34: Fern Valley Wastewater Plant Archaeological Testing",59882,68584,8702],["Task Order 35: Sandpiper Trail Historic Resources Evaluation",70844,77289,6446],["On-Call: Twin Buttes Housing Development GIS Mapping",10539,14659,4120],["Saltgrass Cultural Resources Assessment",36848,40372,3525],["Tansy Flat Cultural Resources Assessment",13883,16268,2385],["Twin Buttes Harbor Dredging Maritime Remote Sensing Survey",130490,132231,1741],["Ember Valley Curation",211966,213449,1483],["Pebble Beach Road Reservoir GIS Mapping",7227,7428,201]],"Sierra":[["Redbud Class III Survey",278794,359995,81200],["On-Call: Oak Terrace Reservoir Section 106 Consultation",49579,76400,26820],["Sumac Ridge Cultural Resources Monitoring",17919,33602,15683],["Copper Flats Phase I Survey",30120,42364,12245],["Phase I: Tamarack Airport Apron Section 106 Consultation",55120,63237,8117],["Stone Mill Airport Apron - Class III Survey",68402,75128,6727],["Oak Terrace Mixed-Use Development - Architectural History Survey",3450,8490,5040],["Tansy Flat Housing Development - Archaeological Testing",14099,18400,4301],["Slate Ridge Trail - Paleontological Monitoring",5493,8126,2633]],"Coastal Bend":[["Tamarack Levee Repair - Historic Resources Evaluation",119171,171056,51885],["Task Order 24: Elk Meadow Mixed-Use Development Historic Resources Evaluation",81265,105548,24283],["Pine Hollow Battery Storage - Archaeological Testing",392476,413751,21275],["Rushgrass Draw Cultural Resources Assessment",12312,22722,10410],["Quail Run Bridge Replacement Phase I Survey",19878,30233,10355],["Saltgrass Battery Storage - Historic Resources Evaluation",37137,47362,10225],["Phase III: Ember Valley Park Improvements Data Recovery",221087,229204,8117],["Creosote Draw Park Improvements Class III Survey",42715,47949,5234],["Quail Run Harbor Dredging - Built Environment Survey",34244,37495,3251],["Goldfinch Mine Expansion Archaeological Testing",34845,37556,2712],["Oak Terrace Wastewater Plant Curation",22089,23588,1498],["Slate Ridge Water Main Maritime Remote Sensing Survey",20975,22323,1348],["Ember Valley Levee Repair Data Recovery",4028,4394,365],["Foxglove Airport Apron - Maritime Remote Sensing Survey",6914,7270,356]],"Built Environment":[["Hackberry Bend Rail Siding - Section 106 Consultation",25920,29883,3963],["Task Order 22: Lantern Bay School Campus Data Recovery",12066,14332,2266],["Stone Mill Environmental Review Support",13328,14550,1221],["Phase III: Granite Pass Mixed-Use Development Maritime Remote Sensing Survey",17556,17874,318],["Elk Meadow Fiber Route Archaeological Testing",12705,12736,31]],"Big Sky":[["Bramble Creek Mine Expansion Phase I Survey",59544,93709,34165],["Phase II: Tamarack Housing Development Phase I Survey",51741,65644,13903],["Hackberry Bend Bridge Replacement Architectural History Survey",12707,18074,5367],["On-Call: Foxglove Substation Cultural Resources Assessment",63801,65021,1220]],"Great Lakes":[["North Fork Rail Siding Paleontological Monitoring",46647,80951,34305],["Sumac Ridge Canal Lining Paleontological Monitoring",51638,83204,31566],["Kestrel Butte Data Recovery",30231,49508,19277],["Slate Ridge Data Recovery",16113,33890,17777],["North Fork Curation",32526,41685,9159],["Kestrel Butte Archaeological Testing",51302,60287,8985],["Meadowlark Mixed-Use Development - Historic Resources Evaluation",36718,42629,5911],["Dove Canyon Trail - GIS Mapping",70843,75193,4350],["Plover Cove Mixed-Use Development - GIS Mapping",18501,21929,3427],["Kestrel Butte Battery Storage - Phase I Survey",36710,38677,1968],["Phase III: Sandpiper Park Improvements Historic Resources Evaluation",21328,23275,1946],["Task Order 30: Bramble Creek Pipeline Environmental Review Support",9580,11383,1803]],"Gulf Coast":[["Kestrel Butte Harbor Dredging - Historic Resources Evaluation",19287,56287,37000],["Goldfinch Bridge Replacement Paleontological Monitoring",13920,36288,22368],["Sandpiper Historic Resources Evaluation",7896,18818,10922],["Hackberry Bend Rail Siding Class III Survey",48880,56948,8067],["Millbrook Fiber Route - Historic Resources Evaluation",20032,27207,7175],["Thistle Down Cell Tower - Historic Resources Evaluation",35983,42126,6143],["Heron Marsh Reservoir - Phase II Testing",54115,59528,5412],["Rushgrass Draw Battery Storage Architectural History Survey",23496,28099,4603],["Cedar Hollow Highway Widening - Section 106 Consultation",121414,122080,666]],"High Desert":[["Wren Hollow Transmission Line - Phase I Survey",78523,119033,40510],["On-Call: Willow Springs Reservoir Archaeological Testing",40697,53863,13166],["Task Order 9: Juniper Wash Wastewater Plant Built Environment Survey",63197,70526,7329],["Sea Oat Bridge Replacement Phase II Testing",39073,45519,6446],["Hackberry Bend Transmission Line Archaeological Testing",136397,140078,3681],["Eagle Bend Solar - Architectural History Survey",19575,22788,3213],["Larkspur Rail Siding Environmental Review Support",78124,79563,1439],["Silver Lake Airport Apron Class III Survey",10132,10427,294]],"Hill Country":[["Yarrow Point Wastewater Plant - Phase I Survey",50299,90902,40603],["Phase II: Granite Pass Highway Widening Environmental Review Support",119267,158777,39510],["Slate Ridge Water Main Archaeological Testing",113970,138124,24154],["Sandpiper Park Improvements - Archaeological Testing",16236,26421,10185],["Meadowlark Substation Phase I Survey",26389,33049,6659]],"Piedmont":[["On-Call: Dove Canyon Fiber Route Cultural Resources Monitoring",60187,78243,18056],["Badger Hollow Paleontological Monitoring",28024,45539,17515],["Fern Valley Wastewater Plant Paleontological Monitoring",44894,57391,12497],["Sage Flat Phase I Survey",21726,30289,8564],["Sparrow Hill Canal Lining Built Environment Survey",15618,19499,3882],["Twin Buttes Mixed-Use Development Paleontological Monitoring",28377,32027,3650],["Phase II: Heron Marsh Mine Expansion Historic Resources Evaluation",6021,6629,609]],"Paleontology":[["Task Order 36: Wren Hollow Water Main Maritime Remote Sensing Survey",173567,177335,3768]],"Geospatial":[["On-Call: Foxglove Reservoir Phase I Survey",68885,89099,20213],["Thistle Down Solar - Maritime Remote Sensing Survey",14170,18919,4749],["Elk Meadow Highway Widening Phase I Survey",44404,44585,180]],"International":[["Kestrel Butte Section 106 Consultation",220527,276640,56113],["Cedar Hollow Airport Apron - Paleontological Monitoring",194222,246340,52117],["Task Order 2: Redbud Highway Widening GIS Mapping",13116,31276,18160],["Task Order 19: Millbrook Bridge Replacement Class III Survey",71004,79042,8038],["Saltgrass Environmental Review Support",15583,16044,461]],"Lakeshore":[["Sparrow Hill Airport Apron Phase II Testing",117609,164790,47181],["Falcon Mesa Archaeological Testing",20302,38923,18620],["Copper Flats Mine Expansion Built Environment Survey",56358,66079,9721]],"Meridian Central":[["Bramble Creek Mine Expansion Archaeological Testing",106315,195734,89419],["Riverbend Highway Widening - Phase II Testing",10904,71168,60265],["Copper Flats Solar - Phase II Testing",73887,131458,57571],["Riverbend Airport Apron - Class III Survey",378424,405626,27202],["Goldfinch Class III Survey",15142,22826,7684]],"Meridian Southwest":[["Ember Valley Housing Development Paleontological Monitoring",78212,103245,25033],["Windmill Flat Battery Storage Curation",91502,100919,9417],["Slate Ridge Battery Storage Class III Survey",26088,32031,5943],["Task Order 8: Pine Hollow Highway Widening Historic Resources Evaluation",37979,37987,8]]};
+(function(){
+  var ovl=document.getElementById('ovl'),mttl=document.getElementById('mttl'),
+      msub=document.getElementById('msub'),mrows=document.getElementById('mrows');
+  function fmt(v){return '$'+Math.round(v).toLocaleString();}
+  function esc(s){return String(s).replace(/[&<>]/g,function(c){return c==='&'?'&amp;':c==='<'?'&lt;':'&gt;';});}
+  function openPmo(name){
+    var d=DETAIL[name];
+    if(!d){return;}
+    var tot=0,i;for(i=0;i<d.length;i++){tot+=d[i][3];}
+    mttl.textContent=name;
+    msub.textContent=d.length+' overrun project'+(d.length===1?'':'s')+' \u00b7 '+fmt(tot)+' total overrun above original budget';
+    var h='';
+    for(i=0;i<d.length;i++){var r=d[i];
+      h+='<tr><td class="mrk">'+(i+1)+'</td><td class="mpn">'+esc(r[0])+'</td><td class="mn">'+fmt(r[1])+'</td><td class="mn">'+fmt(r[2])+'</td><td class="mn mover">('+fmt(r[3])+')</td></tr>';}
+    mrows.innerHTML=h;
+    ovl.classList.add('show');
+  }
+  function closeM(){ovl.classList.remove('show');}
+  var trs=document.querySelectorAll('.rankgrid tbody tr');
+  for(var i=0;i<trs.length;i++){(function(tr){
+    tr.classList.add('clk');
+    tr.addEventListener('click',function(){
+      var pn=tr.querySelector('.pn');
+      if(pn){openPmo(pn.textContent.trim());}
+    });
+  })(trs[i]);}
+  document.getElementById('mcls').addEventListener('click',closeM);
+  ovl.addEventListener('click',function(e){if(e.target===ovl){closeM();}});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeM();}});
+})();
+
+(function(){
+  var b=document.getElementById('xbtn'), t=document.getElementById('xtoast');
+  if(!b||!t) return;
+  function toast(m,ms){t.textContent=m;t.classList.add('show');
+    clearTimeout(t._z);t._z=setTimeout(function(){t.classList.remove('show');},ms||2600);}
+  b.addEventListener('click',function(){toast('Downloading the Budget Watchtower workbook\u2026');});
+})();
+
+</script>
+</body></html>
