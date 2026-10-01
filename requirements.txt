@@ -1,0 +1,4 @@
+openpyxl>=3.1
+python-calamine>=0.2
+# optional, for headless page checks
+# playwright>=1.40
